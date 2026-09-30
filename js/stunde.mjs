@@ -1,6 +1,6 @@
 // Stundenverlauf · App (aus stundenverlauf_v1.html aufgeteilt am 2026-09-30, seitdem hier die Quelle)
 // Version: APP_VERSION = CACHE_NAME im Service Worker = ?v= in index.html — beim Ändern alle drei heben.
-export const APP_VERSION = '2.3.0';
+export const APP_VERSION = '2.3.1';
 
 /* ─── Fachfarben: [Farbton, Helligkeitsstufe] je Fach, übernommen aus der Kladde
    (Klausurkorrektur/kladde/app/logic/fachfarben.mjs, FAECHER, Stand v1.10.1). ─── */
@@ -681,6 +681,13 @@ function jsqrLaden() {
     document.head.append(s);
   });
 }
+// Vorschau scharf/unscharf (Zero 2026-09-30 „Scharf per Tipp“): jeder neue Scan beginnt unscharf
+function vorschauScharf(an) {
+  const r = $('d-scan-rahmen');
+  r.setAttribute('aria-pressed', String(an));
+  r.setAttribute('aria-label', an ? 'Vorschau wieder unscharf' : 'Vorschau scharf zeigen');
+  $('d-scan-tipp').textContent = an ? 'Tippen: unscharf' : 'Tippen: scharf';
+}
 function kameraAus() {
   scanLauf++;
   scanStrom?.getTracks().forEach(t => t.stop());
@@ -693,7 +700,7 @@ async function scannen(ziel) {
   kameraAus();
   const lauf = scanLauf;
   hinweis.textContent = 'Kamera startet …';
-  if (!d.open) d.showModal();
+  if (!d.open) { vorschauScharf(false); d.showModal(); }   // „Andere Kamera“ behält die Wahl, ein neuer Scan nicht
   if (!navigator.mediaDevices?.getUserMedia) { hinweis.textContent = 'In dieser Ansicht gibt es keinen Zugriff auf die Kamera.'; return; }
   let det = null;
   if ('BarcodeDetector' in window) try { det = new BarcodeDetector({ formats: ['qr_code'] }); } catch { det = null; }
@@ -906,6 +913,7 @@ function initEinrichten() {
   // den Scanner neu aus, statt die Uhr zu starten (Befund 10)
   $('d-scan').addEventListener('close', () => { kameraAus(); if (document.activeElement?.id === 'b-update') document.activeElement.blur(); });
   $('d-scan-zu').addEventListener('click', () => $('d-scan').close());
+  $('d-scan-rahmen').addEventListener('click', () => vorschauScharf($('d-scan-rahmen').getAttribute('aria-pressed') !== 'true'));
   $('d-scan-kamera').addEventListener('click', () => { S.kamera = S.kamera === 'user' ? 'environment' : 'user'; schreibe(); scannen(scanZiel); });
   $('d-weiter-teilen').addEventListener('click', linkTeilen);
   $('d-weiter-zu').addEventListener('click', () => { $('d-weiter').close(); $('d-weiter-teilen').textContent = 'Link teilen'; });

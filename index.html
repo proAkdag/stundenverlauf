@@ -26,11 +26,11 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <!-- iOS macht aus Ziffernfolgen („S. 42, Nr. 3“) sonst Telefon-Links -->
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-<link rel="stylesheet" href="./css/stunde.css?v=2.3.0">
+<link rel="stylesheet" href="./css/stunde.css?v=2.3.1">
 <!-- QR-Code für „Weitergeben“: qrcode-generator (Kazuhiko Arase, MIT), übernommen aus der Werft-Arena (vendor/qrcode.js).
      Der Scanner lädt jsQR (Apache-2.0, ebenfalls aus der Arena, vendor/jsqr.js) erst beim ersten Scan. -->
-<script src="./js/vendor/qrcode.js?v=2.3.0" defer></script>
-<script type="module" src="./js/stunde.mjs?v=2.3.0"></script>
+<script src="./js/vendor/qrcode.js?v=2.3.1" defer></script>
+<script type="module" src="./js/stunde.mjs?v=2.3.1"></script>
 </head>
 <body>
 
@@ -151,7 +151,8 @@
 <!-- Scanner (2.3): „Plan holen“ / „Update holen“ — Vorschau klein und unscharf, weil der Beamer mitspiegelt -->
 <dialog id="d-scan" class="dialog" aria-labelledby="d-scan-titel">
   <h2 id="d-scan-titel">QR-Code scannen</h2>
-  <div class="scan-rahmen"><video id="d-scan-video" muted playsinline autoplay aria-hidden="true"></video></div>
+  <!-- Tipp aufs Bild: für diesen Scan scharf und farbig (Zero 2026-09-30 „Scharf per Tipp“) -->
+  <button type="button" class="scan-rahmen" id="d-scan-rahmen" aria-pressed="false" aria-label="Vorschau scharf zeigen"><video id="d-scan-video" muted playsinline autoplay aria-hidden="true"></video><span class="scan-tipp" id="d-scan-tipp" aria-hidden="true">Tippen: scharf</span></button>
   <p class="d-text" id="d-scan-text" role="status"></p>
   <div class="d-knoepfe">
     <button type="button" class="knopf" id="d-scan-kamera">Andere Kamera</button>

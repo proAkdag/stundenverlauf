@@ -229,8 +229,13 @@
   .qr-paar .knopf { flex: 1 1 auto; }
   /* Scanner (2.3): Vorschau klein, unscharf und grau — am Beamer gespiegelt soll niemand zu erkennen sein;
      gelesen wird das Kamerabild selbst, nicht die Vorschau */
-  .scan-rahmen { width: min(100%, 260px); aspect-ratio: 4 / 3; margin: 4px auto 12px; border-radius: 12px; overflow: hidden; background: #000; }
+  .scan-rahmen { display: block; position: relative; width: min(100%, 260px); aspect-ratio: 4 / 3; margin: 4px auto 12px; padding: 0; border: 0;
+    border-radius: 12px; overflow: hidden; background: #000; }
   .scan-rahmen video { display: block; width: 100%; height: 100%; object-fit: cover; filter: blur(7px) grayscale(1); transform: scale(1.1); }
+  /* „Scharf per Tipp“ (Zero 2026-09-30): nur auf Tipp und nur für diesen Scan scharf und farbig — Lehrkraft entscheidet, was die Klasse sieht */
+  .scan-rahmen[aria-pressed="true"] video { filter: none; transform: none; }
+  .scan-tipp { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); padding: 2px 10px; border-radius: 99px;
+    background: rgb(0 0 0 / .6); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; }
 
   /* ─ Handy (2.2, Zero 2026-09-30 „optimiere es auch für das smartphone“): Wurzel der Mindestbreite war die
      Phasen-Kopfzeile (Nummer + vier Sozialformen + drei Knöpfe, gemessen 510 px bei 412). Sie bricht jetzt um,
