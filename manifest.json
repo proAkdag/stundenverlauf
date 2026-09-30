@@ -1,0 +1,17 @@
+{
+  "name": "Stundenverlauf",
+  "short_name": "Stunde",
+  "description": "Stundenverlauf für die Klasse: Eröffnung, Thema, Arbeitsphasen mit Zeitscheibe, Abschluss. Sechs Stunden je Tag vorplanen. Daten bleiben auf dem Gerät.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#17150F",
+  "theme_color": "#17150F",
+  "lang": "de",
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

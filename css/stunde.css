@@ -1,0 +1,331 @@
+/* Stundenverlauf · Stil (aus stundenverlauf_v1.html aufgeteilt am 2026-09-30) */
+@layer reset, base, einrichten, buehne, anim;
+
+@layer reset {
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  button:disabled { cursor: default; }
+  /* iPad: kein Doppeltipp-Zoom, auch wenn man schnell „+ 1“ tippt */
+  button, input, select, textarea, label { touch-action: manipulation; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
+}
+
+@layer base {
+  /* Fachfarbe wie in der Kladde: nur der Farbton (--hue) wechselt je Fach, Helligkeit (--L) und
+     Buntheit bleiben gleich. --stufe = zweite Achse der Kladde (1 = um .15 dunkler). */
+  :root {
+    --hue: 252; --stufe: 0;
+    color-scheme: light;
+    --L: .52;
+    --grund: oklch(.972 .014 var(--hue));
+    --flaeche: oklch(.995 .004 var(--hue));
+    --kante: oklch(.84 .035 var(--hue));
+    --text: #26241E; --leise: #5E594E;
+    --fach: oklch(calc(var(--L) - var(--stufe) * .15) .145 var(--hue));
+    --fach-zart: oklch(.925 .045 var(--hue));
+    --auf-fach: #FFFFFF;
+    --luft: oklch(.52 .1 150); --eng: oklch(.55 .13 65);
+    --schatten: 0 1px 2px oklch(.3 .02 var(--hue) / .08), 0 8px 24px oklch(.3 .02 var(--hue) / .06);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.4;
+  }
+  :root[data-theme="dunkel"] {
+    color-scheme: dark;
+    --L: .70;
+    --grund: oklch(.19 .018 var(--hue));
+    --flaeche: oklch(.235 .022 var(--hue));
+    --kante: oklch(.36 .03 var(--hue));
+    --text: #ECE6D8; --leise: #ABA391;
+    --fach-zart: oklch(.31 .055 var(--hue));
+    --auf-fach: #15130E;
+    --luft: oklch(.75 .1 150); --eng: oklch(.78 .12 70);
+    --schatten: none;
+  }
+  html, body { background: var(--grund); color: var(--text); }
+  body { -webkit-tap-highlight-color: transparent; min-height: 100dvh; }
+  :focus-visible { outline: 3px solid var(--fach); outline-offset: 2px; }
+  svg { display: block; flex: none; }
+}
+
+/* ═══ Einrichten · Lehrer-Ansicht vor der Stunde ═══ */
+@layer einrichten {
+  #einrichten { max-width: 1180px; margin: 0 auto;
+    padding: max(18px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
+  .e-kopf { display: flex; justify-content: space-between; align-items: end; gap: 12px 20px; flex-wrap: wrap;
+    padding: 6px 0 16px; border-bottom: 4px solid var(--fach); margin-bottom: 20px; }
+  .e-kicker { margin: 0; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--fach); font-weight: 700; }
+  .e-kopf h1 { margin: 2px 0 0; font-size: 30px; line-height: 1.1; }
+  .e-anzeige { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .e-raster { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 18px; align-items: start; }
+  @media (max-width: 860px) { .e-raster { grid-template-columns: minmax(0, 1fr); } }
+
+  /* Tagesleiste: sechs Stunden, jede trägt ihre eigene Fachfarbe (--hue/--stufe am Knopf) */
+  .tag { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 0 0 18px; }
+  @media (max-width: 760px) { .tag { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .tag-knopf { --fach: oklch(calc(var(--L) - var(--stufe) * .15) .145 var(--hue));
+    position: relative; display: flex; align-items: center; gap: 10px; min-height: 62px; padding: 8px 10px; text-align: left;
+    border: 1.5px solid var(--kante); border-left: 6px solid var(--fach); border-radius: 12px; background: var(--flaeche); }
+  .tag-knopf.frei { border-left-color: var(--kante); color: var(--leise); }
+  .tag-knopf.an { outline: 2.5px solid var(--fach); outline-offset: -1px; background: color-mix(in oklch, var(--fach) 14%, var(--flaeche)); }
+  .tag-knopf.frei.an { outline-color: var(--leise); background: var(--flaeche); }
+  .tag-nr { font-size: 22px; font-weight: 750; color: var(--fach); font-variant-numeric: tabular-nums; }
+  .tag-knopf.frei .tag-nr { color: var(--leise); }
+  .tag-text { display: grid; min-width: 0; line-height: 1.2; }
+  .tag-text b { font-size: 15px; }
+  .tag-text span { font-size: 13px; color: var(--leise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag-laeuft { position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--fach); }
+  .stunde-werkzeug { display: flex; gap: 8px; margin-bottom: 12px; }
+  .stunde-werkzeug select { flex: 1 1 auto; min-width: 0; }
+  .stunde-werkzeug .knopf:disabled, .stunde-werkzeug select:disabled { opacity: .45; }
+
+  .karte { background: var(--flaeche); border: 1px solid var(--kante); border-radius: 14px; padding: 16px; margin-bottom: 18px; box-shadow: var(--schatten); }
+  .karte > h2 { margin: 0 0 12px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); }
+  .feld { display: grid; gap: 4px; margin-bottom: 12px; }
+  .feld:last-child { margin-bottom: 0; }
+  .feld > span { font-size: 14px; font-weight: 600; color: var(--leise); }
+  input[type="text"], select {
+    min-height: 44px; width: 100%; border: 1px solid var(--kante); border-radius: 10px; padding: 0 12px;
+    background: var(--grund); font-size: 16px;
+  }
+  textarea { display: block; width: 100%; min-height: 76px; max-height: 280px; border: 1px solid var(--kante); border-radius: 10px; padding: 10px 12px;
+    background: var(--grund); font: inherit; font-size: 16px; line-height: 1.4; color: inherit; resize: vertical; field-sizing: content; }
+  select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--leise) 50%), linear-gradient(135deg, var(--leise) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
+
+  /* Material als Schalter */
+  .mat-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 8px; }
+  .mat-knopf { display: grid; justify-items: center; align-content: center; gap: 6px; padding: 10px 4px; min-height: 80px;
+    border: 1.5px solid var(--kante); border-radius: 12px; background: var(--grund); font-size: 14px; text-align: center; line-height: 1.15; }
+  .mat-knopf svg { width: 28px; height: 28px; color: var(--leise); }
+  .mat-knopf[aria-pressed="true"] { border-color: var(--fach); background: var(--fach-zart); font-weight: 650; }
+  .mat-knopf[aria-pressed="true"] svg { color: var(--fach); }
+  .eigen-zeile { display: flex; gap: 8px; margin-top: 12px; }
+  .eigen-liste { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .eigen-liste:empty { display: none; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 6px 0 12px; border-radius: 999px;
+    background: var(--fach-zart); border: 1.5px solid var(--fach); font-size: 15px; font-weight: 600; }
+  .chip button { width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent; display: grid; place-items: center; }
+  .chip svg { width: 16px; height: 16px; }
+
+  .knopf { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1.5px solid var(--kante); background: var(--flaeche);
+    font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+  .knopf svg { width: 18px; height: 18px; }
+
+  /* Segment-Wahl (Radio) — Sozialform, Anzeige */
+  .segment { display: flex; border: 1px solid var(--kante); border-radius: 10px; overflow: hidden; background: var(--flaeche); min-width: 0; }
+  .segment label { flex: 1 1 0; position: relative; min-width: 0; }
+  .segment input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .segment span { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 8px;
+    font-size: 15px; border-right: 1px solid var(--kante); white-space: nowrap; }
+  .segment label:last-child span { border-right: 0; }
+  .segment input:checked + span { background: var(--fach); color: var(--auf-fach); font-weight: 650; }
+  .segment input:focus-visible + span { outline: 3px solid var(--fach); outline-offset: -3px; }
+
+  .schalter { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .schalter input { width: 22px; height: 22px; accent-color: var(--fach); margin: 0; }
+
+  /* Zahlen-Stepper */
+  .stepper { display: inline-flex; align-items: center; border: 1px solid var(--kante); border-radius: 10px; overflow: hidden; background: var(--flaeche); }
+  .stepper button { width: 44px; min-height: 44px; border: 0; background: transparent; font-size: 22px; line-height: 1; }
+  .stepper input[type="text"] { width: 48px; min-height: 44px; padding: 0; border: 0; border-left: 1px solid var(--kante); border-radius: 0;
+    background: transparent; text-align: center; font-variant-numeric: tabular-nums; font-weight: 650; }
+  .stepper .einheit { align-self: stretch; display: flex; align-items: center; padding: 0 8px 0 2px; font-size: 14px; color: var(--leise); border-right: 1px solid var(--kante); }
+  .stepper input + button { border-left: 1px solid var(--kante); }
+
+  /* Ablauf */
+  .rahmen { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: var(--grund); border: 1px dashed var(--kante); }
+  .rahmen .r-name { font-weight: 650; display: flex; align-items: center; gap: 8px; margin-right: auto; }
+  .rahmen .r-name svg { width: 22px; height: 22px; color: var(--fach); }
+  .phasen { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 10px; }
+  .phase-zeile { padding: 10px 12px; border: 1px solid var(--kante); border-radius: 12px; background: var(--grund); display: grid; gap: 8px; }
+  .pz-kopf { display: flex; align-items: center; gap: 10px; }
+  .pz-kopf .segment { flex: 1 1 auto; }
+  .nr { width: 32px; height: 32px; border-radius: 50%; background: var(--fach); color: var(--auf-fach); display: grid; place-items: center;
+    font-weight: 700; font-size: 15px; flex: none; }
+  .nr svg { width: 18px; height: 18px; }
+  .phase-zeile.pause .nr { background: var(--fach-zart); color: var(--text); }
+  .pz-pause { font-weight: 650; flex: 1 1 auto; }
+  .pz-aktionen { display: flex; gap: 2px; flex: none; }
+  .mini { width: 44px; height: 44px; border: 0; border-radius: 10px; background: transparent; display: grid; place-items: center; color: var(--leise); }
+  .mini svg { width: 20px; height: 20px; }
+  .mini:disabled { opacity: .3; }
+  .pz-werte { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding-left: 42px; }
+  .pz-label { font-size: 14px; color: var(--leise); font-weight: 600; }
+  .pz-auftrag { margin-left: 42px; }
+  .auftrag-feld { display: grid; gap: 6px; }
+  .auftrag-werkzeug { display: flex; gap: 6px; flex-wrap: wrap; }
+  .auftrag-werkzeug .knopf { min-height: 44px; padding: 0 12px; font-size: 14px; }
+  .plus-reihe { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+  .plus-reihe .knopf { padding: 0 12px; }
+  .abschluss-felder { display: grid; gap: 10px; margin-top: 10px; }
+
+  .budget { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 14px; border-radius: 12px; background: var(--fach-zart); margin-top: 14px; font-size: 15px; }
+  .budget select { width: auto; min-height: 40px; background-color: var(--flaeche); }
+  .budget b { font-variant-numeric: tabular-nums; }
+  #e-luft { font-weight: 650; color: var(--luft); margin-left: auto; }
+  #e-luft.zuviel { color: var(--eng); }
+  .leise-knopf { border: 0; background: none; padding: 8px 0; min-height: 44px; color: var(--leise); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+
+  .start-reihe { display: grid; gap: 10px; }
+  .start { min-height: 64px; border: 0; border-radius: 16px; background: var(--fach); color: var(--auf-fach); font-size: 20px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: var(--schatten); }
+  .start svg { width: 24px; height: 24px; }
+  .start.zweit { min-height: 52px; background: var(--flaeche); color: var(--text); border: 1.5px solid var(--kante); font-size: 17px; box-shadow: none; }
+  .fuss { margin: 14px 2px 0; font-size: 13px; color: var(--leise); }
+  .neu-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 10px 14px;
+    border-radius: 12px; background: var(--fach-zart); border: 1.5px solid var(--fach); font-weight: 600; }
+}
+
+/* ═══ Bühne · die Fenster für die Klasse ═══ */
+@layer buehne {
+  /* minmax(0,1fr): sonst drückt die lange Verlaufsleiste die Spalte breiter als den Bildschirm */
+  #buehne { position: fixed; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; background: var(--grund); color: var(--text);
+    /* iPad: langes Drücken wählt keinen Text aus und öffnet kein Menü */
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  html.auf-buehne, html.auf-buehne body { overflow: hidden; overscroll-behavior: none; }
+  .b-kopf { display: flex; justify-content: space-between; align-items: center; gap: 2vmin; background: var(--fach); color: var(--auf-fach);
+    padding: max(1.4vmin, env(safe-area-inset-top)) max(3vmin, env(safe-area-inset-right)) 1.4vmin max(3vmin, env(safe-area-inset-left)); }
+  .b-fach { font-size: 3vmin; font-weight: 750; letter-spacing: .01em; }
+  .b-lk { font-weight: 500; opacity: .85; }
+  .b-rechts { display: flex; align-items: center; gap: 1.2vmin; }
+  .b-uhr { font-size: 3vmin; font-weight: 650; font-variant-numeric: tabular-nums; margin-right: 1vmin; }
+  .b-knopf { min-width: 44px; min-height: 44px; width: 5.4vmin; height: 5.4vmin; border: 0; border-radius: 1.2vmin; background: transparent; color: inherit;
+    display: grid; place-items: center; opacity: .8; }
+  .b-knopf svg { width: 2.8vmin; height: 2.8vmin; min-width: 20px; min-height: 20px; }
+
+  /* Inhalt mittig, solange er passt; wird er zu lang (viel Auftrag, iPad hochkant), rollt er statt abgeschnitten zu werden */
+  .b-fenster { padding: 4vmin 6vmin; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; touch-action: pan-y; }
+  .b-fenster > * { margin-block: auto; }
+  .b-leiste { display: flex; align-items: center; gap: 1.4vmin;
+    padding: 1.2vmin max(2vmin, env(safe-area-inset-right)) max(1.8vmin, env(safe-area-inset-bottom)) max(2vmin, env(safe-area-inset-left)); }
+  .b-pfeil { flex: none; width: 7vmin; height: 7vmin; min-width: 48px; min-height: 48px; border-radius: 50%; border: 1.5px solid var(--kante);
+    background: var(--flaeche); display: grid; place-items: center; color: var(--text); }
+  .b-pfeil svg { width: 3.4vmin; height: 3.4vmin; min-width: 22px; min-height: 22px; }
+  .b-pfeil:disabled { opacity: .3; }
+  .b-verlauf { flex: 1 1 auto; min-width: 0; display: flex; gap: 1vmin; list-style: none; margin: 0; padding: .6vmin 0; overflow-x: auto; scrollbar-width: none; }
+  .b-verlauf::-webkit-scrollbar { display: none; }
+  .b-schritt { flex: none; }
+  .b-schritt:first-child { margin-left: auto; }
+  .b-schritt:last-child { margin-right: auto; }
+  .b-schritt button { position: relative; display: flex; align-items: center; gap: .8vmin; min-height: 44px; padding: 1vmin 1.4vmin; border-radius: 999px;
+    border: 1.5px solid var(--kante); background: var(--flaeche); font-size: 1.85vmin; font-weight: 600; white-space: nowrap; color: var(--text); }
+  .b-schritt button svg { width: 2.5vmin; height: 2.5vmin; min-width: 17px; min-height: 17px; color: var(--fach); }
+  .b-schritt.vorbei button { opacity: .5; }
+  .b-schritt.jetzt button { background: var(--fach); border-color: var(--fach); color: var(--auf-fach); }
+  .b-schritt.jetzt button svg { color: inherit; }
+  .b-schritt.laeuft button::after { content: ''; position: absolute; top: -.3vmin; right: -.3vmin; width: 1.6vmin; height: 1.6vmin; min-width: 10px; min-height: 10px;
+    border-radius: 50%; background: var(--fach); border: 2px solid var(--grund); }
+
+  /* Fenster-Bausteine */
+  .f-kicker { margin: 0 0 1.4vmin; font-size: 2.6vmin; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; color: var(--fach); }
+  .f-titel { margin: 0; font-size: 8.4vmin; line-height: 1.04; font-weight: 750; letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; }
+  .f-titel .fachwort { color: var(--fach); }
+  .f-unter { margin: 1.2vmin 0 0; font-size: 4.6vmin; font-weight: 500; color: var(--leise); }
+  .f-abschnitt { margin: 6vmin 0 2.4vmin; font-size: 3.4vmin; font-weight: 650; }
+
+  .mat-reihe { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2.2vmin; }
+  .mat-kachel { min-width: 17.5vmin; max-width: 34vmin; padding: 2.6vmin 2vmin 2vmin; background: var(--flaeche); border: 1.5px solid var(--kante); border-radius: 2.4vmin;
+    display: grid; justify-items: center; gap: 1.4vmin; text-align: center; font-size: 2.6vmin; font-weight: 650; line-height: 1.15; overflow-wrap: break-word; hyphens: auto; }
+  .mat-kachel svg { width: 9vmin; height: 9vmin; color: var(--fach); }
+
+  .f-heute { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); gap: 6vmin; align-items: center; }
+  .f-modul { display: flex; align-items: center; gap: 1.6vmin; margin: 3.4vmin 0 0; font-size: 3.6vmin; font-weight: 600; }
+  .f-modul svg { width: 5vmin; height: 5vmin; color: var(--fach); }
+  .ablauf { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.5vmin; }
+  .ablauf li { display: grid; grid-template-columns: 5.6vmin minmax(0, 1fr) auto; align-items: center; gap: 2vmin;
+    padding: 1.3vmin 2.4vmin; background: var(--flaeche); border: 1.5px solid var(--kante); border-radius: 2vmin; font-size: 3.3vmin; font-weight: 650; line-height: 1.15; }
+  .ablauf .was { display: grid; min-width: 0; overflow-wrap: break-word; hyphens: auto; }
+  .ablauf .wann { font-size: 2.1vmin; font-weight: 600; color: var(--leise); }
+  .ablauf svg { width: 5.6vmin; height: 5.6vmin; color: var(--fach); }
+  .ablauf .dauer { font-variant-numeric: tabular-nums; font-weight: 750; color: var(--fach); white-space: nowrap; }
+  /* ab 7 Zeilen: eine Zeile je Phase, „dann“ entfällt — die Reihenfolge trägt die Liste selbst */
+  .ablauf.dicht { gap: 1vmin; }
+  .ablauf.dicht li { padding-block: .7vmin; font-size: 2.7vmin; }
+  .ablauf.dicht .wann { display: none; }
+  .ablauf.dicht svg { width: 4.2vmin; height: 4.2vmin; }
+
+  .f-phase { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7vmin; align-items: center; }
+  .f-phase.ohne-uhr { grid-template-columns: minmax(0, 1fr); }
+  .soz { display: flex; align-items: center; gap: 3vmin; }
+  .soz svg { width: 12vmin; height: 12vmin; color: var(--fach); }
+  .hinweis { margin: 3vmin 0 0; font-size: 3.8vmin; line-height: 1.3; color: var(--leise); font-weight: 500; }
+  .auftrag { margin-top: 4vmin; padding: 2.6vmin 3.2vmin; background: var(--flaeche); border: 1.5px solid var(--kante); border-left: 1.2vmin solid var(--fach);
+    border-radius: 1.6vmin; font-size: 4vmin; line-height: 1.28; font-weight: 600; overflow-wrap: anywhere; }
+  .auftrag b { display: block; margin-bottom: .8vmin; font-size: 2.2vmin; letter-spacing: .09em; text-transform: uppercase; color: var(--fach); }
+  .auftrag p { margin: 0; }
+  .auftrag > :not(b) + :not(b) { margin-top: 1.2vmin; }
+  .a-liste { margin: 0; padding-left: 1.25em; display: grid; gap: .7vmin; }
+  .a-liste li { padding-left: .2em; }
+  .a-liste li::marker { color: var(--fach); font-weight: 750; font-variant-numeric: tabular-nums; }
+  /* längere Aufträge etwas kleiner, damit sie zwischen Kopf und Leiste passen */
+  .auftrag.lang { font-size: 3.3vmin; }
+  .auftrag.sehr-lang { font-size: 2.8vmin; }
+
+  /* Zeitscheibe: der farbige Teil ist die Zeit, die noch bleibt; die Kante wandert im Uhrzeigersinn */
+  .uhr-block { display: grid; justify-items: center; gap: 2vmin; }
+  .scheibe { --anteil: 1; position: relative; width: 44vmin; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
+    background: conic-gradient(var(--fach-zart) calc((1 - var(--anteil)) * 360deg), var(--fach) 0); }
+  .scheibe::before { content: ''; position: absolute; inset: 6vmin; border-radius: 50%; background: var(--grund); }
+  .zahl { position: relative; display: grid; justify-items: center; line-height: 1; }
+  .zahl b { font-size: 13vmin; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .zahl span { margin-top: .6vmin; font-size: 3vmin; font-weight: 650; color: var(--leise); }
+  .uhr-unter { margin: 0; min-height: 1.3em; font-size: 3.6vmin; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .uhr-knoepfe { display: flex; gap: 1.2vmin; flex-wrap: wrap; justify-content: center; }
+  .u-knopf { min-height: 44px; min-width: 44px; padding: 1vmin 2vmin; border-radius: 999px; border: 1.5px solid var(--kante); background: var(--flaeche);
+    color: var(--text); font-size: 2.3vmin; font-weight: 650; display: inline-flex; align-items: center; justify-content: center; gap: .8vmin; font-variant-numeric: tabular-nums; }
+  .u-knopf svg { width: 2.6vmin; height: 2.6vmin; min-width: 16px; min-height: 16px; }
+  .u-knopf.haupt { background: var(--fach); border-color: var(--fach); color: var(--auf-fach); padding-inline: 3vmin; font-size: 2.8vmin; }
+
+  @media (orientation: portrait) {
+    .f-heute, .f-phase { grid-template-columns: minmax(0, 1fr); gap: 4vmin; }
+    .scheibe { width: 38vmin; }
+    .scheibe::before { inset: 5vmin; }
+    /* hochkant: Scheibe links, „bis … Uhr“ und Knöpfe rechts daneben — spart die Höhe von zwei Zeilen */
+    .uhr-block { grid-template-columns: auto auto; column-gap: 4vmin; align-items: center; justify-content: start; }
+    .uhr-block .scheibe { grid-row: span 2; }
+    .uhr-unter { align-self: end; }
+    .uhr-knoepfe { align-self: start; justify-content: start; }
+  }
+}
+
+/* Zeitscheibe zeichnet sich beim Ankommen: --anteil muss registriert sein, sonst springt es statt zu gleiten */
+@property --anteil { syntax: '<number>'; inherits: false; initial-value: 1; }
+
+@layer anim {
+  /* ─ Fensterwechsel (Zero 2026-09-30: „Übergänge schöner“) ─
+     Mit View Transitions (Safari 18+, Chrome 111+): das Fenster gleitet in Blätterrichtung, die Markierung
+     der Leiste wandert von Station zu Station. Ohne sie: dieselbe Bewegung als Einblenden des neuen Fensters. */
+  #b-fenster { view-transition-name: fenster; }
+  .b-schritt.jetzt button { view-transition-name: jetzt; }
+  ::view-transition-group(fenster) { animation-duration: .42s; }
+  ::view-transition-old(fenster) { animation: .24s cubic-bezier(.4, 0, 1, 1) both fenster-raus-vor; }
+  ::view-transition-new(fenster) { animation: .42s cubic-bezier(.2, .8, .2, 1) both fenster-rein-vor; }
+  html[data-richtung="zurueck"]::view-transition-old(fenster) { animation-name: fenster-raus-zurueck; }
+  html[data-richtung="zurueck"]::view-transition-new(fenster) { animation-name: fenster-rein-zurueck; }
+  ::view-transition-group(jetzt) { animation-duration: .42s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+  @keyframes fenster-raus-vor { to { opacity: 0; transform: translateX(-5vmin) scale(.985); } }
+  @keyframes fenster-rein-vor { from { opacity: 0; transform: translateX(7vmin); } }
+  @keyframes fenster-raus-zurueck { to { opacity: 0; transform: translateX(5vmin) scale(.985); } }
+  @keyframes fenster-rein-zurueck { from { opacity: 0; transform: translateX(-7vmin); } }
+  html:not(.vt) #b-fenster > * { animation: .42s cubic-bezier(.2, .8, .2, 1) both fenster-rein-vor; }
+  html:not(.vt)[data-richtung="zurueck"] #b-fenster > * { animation-name: fenster-rein-zurueck; }
+
+  /* Inhalt erscheint gestaffelt — Überschrift, Symbol, Auftrag, Kacheln, Ablaufzeilen (--i setzt das Skript) */
+  #b-fenster .stufe { animation: .5s cubic-bezier(.2, .8, .2, 1) backwards auftauchen; animation-delay: calc(var(--i, 0) * 50ms + 90ms); }
+  #b-fenster .mat-kachel.stufe { animation-name: aufpoppen; }
+  @keyframes auftauchen { from { opacity: 0; transform: translateY(1.8vmin); } }
+  @keyframes aufpoppen { from { opacity: 0; transform: translateY(1.2vmin) scale(.92); } }
+  .scheibe { animation: einzeichnen .9s cubic-bezier(.3, .7, .2, 1) .2s backwards; }
+  @keyframes einzeichnen { from { --anteil: 0; } }
+
+  .scheibe.klingt { animation: klang 1.6s ease-out 3; }
+  @keyframes klang {
+    0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--fach) 45%, transparent); }
+    100% { box-shadow: 0 0 0 5vmin transparent; }
+  }
+}

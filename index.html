@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="de" data-theme="hell">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<!-- ╔═══ STUNDENVERLAUF · PWA für den Unterricht (iPad) ══════════════════════════╗
+     Werk: organisatorisches · Zero 2026-09-30 (Klassenmanagement)
+     Struktur: css/stunde.css · js/stunde.mjs · service-worker.js (offline) · manifest.json
+     Version: APP_VERSION (js) = CACHE_NAME (SW) = ?v= (hier) — die Probe prüft die Gleichheit.
+     Kein Netz nach dem ersten Laden, nichts verlässt das Gerät (connect-src 'self' nur für den SW).
+╚══════════════════════════════════════════════════════════════════════════════╝ -->
+
+<title>Stundenverlauf</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="light dark">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#17150F">
+<!-- iPad: „Zum Home-Bildschirm“ → Vollbild-App ohne Safari-Leiste -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stunde">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<!-- iOS macht aus Ziffernfolgen („S. 42, Nr. 3“) sonst Telefon-Links -->
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+<link rel="stylesheet" href="./css/stunde.css?v=2.0.0">
+<script type="module" src="./js/stunde.mjs?v=2.0.0"></script>
+</head>
+<body>
+
+<main id="einrichten">
+  <div class="neu-banner" id="e-neu" hidden>
+    <span>Eine neue Version ist da.</span>
+    <button type="button" class="knopf" id="e-neu-laden">Neu laden</button>
+  </div>
+
+  <header class="e-kopf">
+    <div>
+      <p class="e-kicker">Klassenmanagement</p>
+      <h1>Stundenverlauf</h1>
+    </div>
+    <div class="e-anzeige" id="e-anzeige"></div>
+  </header>
+
+  <nav class="tag" id="e-tag" aria-label="Stunden des Tages"></nav>
+
+  <div class="e-raster">
+    <div>
+      <section class="karte" aria-labelledby="h-fach">
+        <h2 id="h-fach">1. Stunde</h2>
+        <label class="feld"><span>Fach</span><select id="e-fach"></select></label>
+        <div class="stunde-werkzeug">
+          <select id="e-kopie" aria-label="Plan aus einer anderen Stunde übernehmen"></select>
+          <button type="button" class="knopf" id="e-leeren">Leeren</button>
+        </div>
+        <label class="feld"><span>Lehrkraft (gilt für alle Stunden)</span><input type="text" id="e-lk" autocomplete="off" maxlength="40"></label>
+      </section>
+
+      <section class="karte" aria-labelledby="h-heute">
+        <h2 id="h-heute">Heute</h2>
+        <label class="feld"><span>Thema</span><input type="text" id="e-thema" autocomplete="off" maxlength="120" placeholder="z. B. Brüche vergleichen"></label>
+        <label class="feld"><span>Modul</span><input type="text" id="e-modul" autocomplete="off" maxlength="120" placeholder="z. B. Modul 3 in Moodle"></label>
+      </section>
+
+      <section class="karte" aria-labelledby="h-material">
+        <h2 id="h-material">Material</h2>
+        <div class="mat-raster" id="e-material"></div>
+        <div class="eigen-zeile">
+          <input type="text" id="e-eigen" autocomplete="off" maxlength="40" placeholder="Weiteres Material" aria-label="Weiteres Material">
+          <button type="button" class="knopf" id="e-eigen-plus">Hinzufügen</button>
+        </div>
+        <div class="eigen-liste" id="e-eigen-liste"></div>
+      </section>
+    </div>
+
+    <div>
+      <section class="karte" aria-labelledby="h-ablauf">
+        <h2 id="h-ablauf">Ablauf</h2>
+        <div class="rahmen" id="e-einstieg"></div>
+        <ol class="phasen" id="e-phasen"></ol>
+        <div class="plus-reihe" id="e-plus"></div>
+        <div class="rahmen" id="e-abschluss"></div>
+        <div class="abschluss-felder">
+          <input type="text" id="e-ab-text" autocomplete="off" maxlength="160" placeholder="Abschluss (optional) – z. B. Ergebnisse vergleichen" aria-label="Text zum Abschluss">
+          <div id="e-ab-ha"></div>
+        </div>
+        <div class="budget">
+          <label for="e-stunde">Stunde</label>
+          <select id="e-stunde">
+            <option value="45">45 min</option>
+            <option value="60">60 min</option>
+            <option value="67.5">67½ min</option>
+            <option value="90">90 min</option>
+          </select>
+          <span id="e-summe"></span>
+          <span id="e-luft"></span>
+        </div>
+        <button type="button" class="leise-knopf" id="e-reset">Ablauf auf Standard zurücksetzen</button>
+      </section>
+
+      <div class="start-reihe" id="e-start-reihe"></div>
+      <p class="fuss" id="e-wach" hidden>In dieser Ansicht kann die Seite den Bildschirm nicht wach halten. Am iPad für die Stunde: Einstellungen → Anzeige &amp; Helligkeit → Automatische Sperre → Nie.</p>
+      <p class="fuss" id="e-fuss">Läuft ohne Internet. Die sechs Stunden bleiben auf diesem Gerät gespeichert.</p>
+    </div>
+  </div>
+</main>
+
+<section id="buehne" hidden aria-label="Stundenverlauf">
+  <header class="b-kopf">
+    <div class="b-fach"><span id="b-fach"></span><span class="b-lk" id="b-lk"></span></div>
+    <div class="b-rechts">
+      <span class="b-uhr" id="b-uhr"></span>
+      <button type="button" class="b-knopf" id="b-vollbild" aria-label="Vollbild"></button>
+      <button type="button" class="b-knopf" id="b-zurueck" aria-label="Zur Einrichtung"></button>
+    </div>
+  </header>
+  <div class="b-fenster" id="b-fenster" aria-live="polite"></div>
+  <nav class="b-leiste" aria-label="Verlauf der Stunde">
+    <button type="button" class="b-pfeil" id="b-vor" aria-label="Zurück"></button>
+    <ol class="b-verlauf" id="b-verlauf"></ol>
+    <button type="button" class="b-pfeil" id="b-weiter" aria-label="Weiter"></button>
+  </nav>
+</section>
+
+<noscript>Diese Seite braucht JavaScript.</noscript>
+</body>
+</html>
