@@ -1,6 +1,6 @@
 // Stundenverlauf · App (aus stundenverlauf_v1.html aufgeteilt am 2026-09-30, seitdem hier die Quelle)
 // Version: APP_VERSION = CACHE_NAME im Service Worker = ?v= in index.html — beim Ändern alle drei heben.
-export const APP_VERSION = '2.2.0';
+export const APP_VERSION = '2.3.0';
 
 /* ─── Fachfarben: [Farbton, Helligkeitsstufe] je Fach, übernommen aus der Kladde
    (Klausurkorrektur/kladde/app/logic/fachfarben.mjs, FAECHER, Stand v1.10.1). ─── */
@@ -78,6 +78,7 @@ const PFADE = {
   ziel: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
   danach: '<path d="M4 12h14"/><path d="M13 6.5l5.5 5.5-5.5 5.5"/>',
   fertig: '<path d="M4.5 12.5l4.5 4.5 10.5-11"/>',
+  scan: '<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><rect x="8" y="8" width="3" height="3" rx=".5"/><rect x="13" y="8" width="3" height="3" rx=".5"/><rect x="8" y="13" width="3" height="3" rx=".5"/><path d="M13.5 13.5H16V16"/>',
 };
 const ICON_CACHE = {};
 function icon(name) {
@@ -107,29 +108,37 @@ function h(tag, attrs = {}, ...kinder) {
 /* ─── Speicher: sechs Stunden des Tages, jede mit eigenem Plan (Zero 2026-09-30).
    localStorage dieses Geräts; ohne Speicher läuft die Seite trotzdem.
    Format (Schlüssel stundenverlauf.v2, seit 2.1.0 um Felder erweitert, alte Stände laden unverändert):
-     stunden[6]  Plan | null — Plan: fach, kurs, thema, modul, ziel, material[], eigenes[], einstieg,
+     stunden[6]  Plan | null — Plan: pid, fach, kurs, thema, modul, ziel, material[], eigenes[], einstieg,
                  phasen[{id, typ, min, groesse, auftrag, fertig, offen}], abschluss{min, text, ha}, gelaufen ('JJJJ-MM-TT' | '')
+                 pid (2.3) = Kennung der Stunde über Geräte hinweg: ein Plan, der mit derselben pid zurückkommt, aktualisiert
+                 genau diese Stunde, auch während sie läuft (Uhren hängen an den Phasen-IDs, die mitreisen)
      muster[]    {name, einstieg, phasen[{typ, min, groesse}], abschlussMin, material[], eigenes[]} — nur Ablauf und Material (Zero)
      kurse{}     Schlüssel = Kursname klein → {name, datum, stunde, plan, uebertrag[Phase], offenErledigt} — zuletzt gestartete
                  Stunde je Kurs; ein Objekt ohne Prototyp, damit Kursnamen wie „constructor“ nichts Geerbtes treffen
      selbstlauf  Phasen wechseln nach Ablauf der Zeit von selbst (Schalter, aus)
+     kamera      'environment' | 'user' — zuletzt gewählte Kamera des Scanners (2.3)
    Jedes Feld läuft beim Laden durch seine Prüfung — ein Feld, das dort fehlt, geht beim Neuladen verloren. ─── */
 const SCHLUESSEL = 'stundenverlauf.v2';
 const STUNDEN = 6;
 const LAUF_GUELTIG_MS = 4 * 3600e3;
 const MUSTER_MAX = 20, KURSE_MAX = 40;
 let speicherGeht = true;
-const neueId = () => Math.random().toString(36).slice(2, 10);
+let pidNeu = false;
+const neueId =() => Math.random().toString(36).slice(2, 10);
 const zahl = (v, min, max, std) => { const n = Number(v); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : std; };
 const text = (v, max = 200) => typeof v === 'string' ? v.slice(0, max) : '';
 const heute = () => { const d = new Date(Date.now()); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const kursSchluessel = k => (k || '').trim().toLowerCase();
 // nur eigene Schlüssel: „constructor“ oder „toString“ aus einem fremden Link sind kein Fach und keine Sozialform (Fremdprüfung 2.2)
 const hat = (o, k) => typeof k === 'string' && Object.hasOwn(o, k);
+// IDs reisen seit 2.3 mit (Link, QR): nur Kleinbuchstaben und Ziffern, und nie der Name eines festen Fensters
+const FENSTER_FEST = new Set(['start', 'heute', 'abschluss']);
+const gueltigeId = s => typeof s === 'string' && /^[a-z0-9]{1,20}$/.test(s) && !FENSTER_FEST.has(s);
 
 function neuePhase(typ, min, groesse = 4) { return { id: neueId(), typ, min, groesse, auftrag: '', fertig: '', offen: false }; }
 function standardPlan(fach = 'Mathematik') {
   return {
+    pid: neueId(),
     fach, kurs: '', thema: '', modul: '', ziel: '',
     material: ['ipad', 'buch', 'mappe', 'schreibzeug'], eigenes: [],
     einstieg: 5,
@@ -143,7 +152,10 @@ const pruefeEigenes = e => Array.isArray(e) ? e.filter(x => typeof x === 'string
 function pruefePlan(p) {
   const d = standardPlan();
   if (!p || typeof p !== 'object') return d;
+  const vergeben = new Set();   // zwei Phasen mit derselben ID teilten sich eine Uhr
+  const eigeneId = id => { const neu = gueltigeId(id) && !vergeben.has(id) ? id : neueId(); vergeben.add(neu); return neu; };
   return {
+    pid: gueltigeId(p.pid) ? p.pid : d.pid,
     fach: hat(FAECHER, p.fach) ? p.fach : d.fach,
     kurs: text(p.kurs, 20),
     thema: text(p.thema, 120), modul: text(p.modul, 120), ziel: text(p.ziel, 160),
@@ -152,7 +164,7 @@ function pruefePlan(p) {
     einstieg: Math.round(zahl(p.einstieg, 0, 60, d.einstieg)),
     phasen: Array.isArray(p.phasen)
       ? p.phasen.filter(x => x && hat(FORM, x.typ)).slice(0, 12).map(x => ({
-          id: typeof x.id === 'string' && x.id ? x.id.slice(0, 20) : neueId(), typ: x.typ,
+          id: eigeneId(x.id), typ: x.typ,
           min: Math.round(zahl(x.min, 1, 120, 10)), groesse: Math.round(zahl(x.groesse, 3, 8, 4)), auftrag: text(x.auftrag, 600),
           fertig: text(x.fertig, 200), offen: x.offen === true,
         }))
@@ -180,22 +192,28 @@ function ladeSpeicher() {
   try { roh = JSON.parse(localStorage.getItem(SCHLUESSEL) || 'null'); } catch { speicherGeht = false; }
   const s = {
     lehrkraft: 'Akdağ', theme: 'hell', signal: true, selbstlauf: false, stunde: 67.5, aktiv: 0, stunden: Array(STUNDEN).fill(null), lauf: null,
-    muster: [], kurse: Object.create(null),
+    muster: [], kurse: Object.create(null), kamera: 'environment',
   };
   if (!roh || typeof roh !== 'object') return s;
+  if (roh.kamera === 'user') s.kamera = 'user';
   if (typeof roh.lehrkraft === 'string') s.lehrkraft = roh.lehrkraft.slice(0, 40);
   if (roh.theme === 'dunkel') s.theme = 'dunkel';
   s.signal = roh.signal !== false;
   s.selbstlauf = roh.selbstlauf === true;
   if ([45, 60, 67.5, 90].includes(roh.stunde)) s.stunde = roh.stunde;
   s.aktiv = Math.round(zahl(roh.aktiv, 0, STUNDEN - 1, 0));
-  if (Array.isArray(roh.stunden)) roh.stunden.slice(0, STUNDEN).forEach((p, i) => { if (p) s.stunden[i] = pruefePlan(p); });
+  if (Array.isArray(roh.stunden)) roh.stunden.slice(0, STUNDEN).forEach((p, i) => {
+    if (!p) return;
+    s.stunden[i] = pruefePlan(p);
+    // Stand vor 2.3 ohne pid: die neue Kennung muss sofort gespeichert werden, sonst gilt nach dem Neuladen eine andere
+    if (!gueltigeId(p.pid)) pidNeu = true;
+  });
   if (Array.isArray(roh.muster)) s.muster = roh.muster.map(pruefeMuster).filter(Boolean).slice(0, MUSTER_MAX);
   if (roh.kurse && typeof roh.kurse === 'object')
     for (const [schl, k] of Object.entries(roh.kurse)) { const g = pruefeKurs(k); if (g && schl === kursSchluessel(g.name)) s.kurse[schl] = g; }
   const l = roh.lauf;
   if (l && Number.isInteger(l.stunde) && s.stunden[l.stunde] && Number.isFinite(l.stand) && Date.now() - l.stand < LAUF_GUELTIG_MS && l.uhren && typeof l.uhren === 'object') {
-    const uhren = {};
+    const uhren = Object.create(null);   // Schlüssel sind Phasen-IDs — ohne Prototyp trifft keine ID etwas Geerbtes
     for (const [id, u] of Object.entries(l.uhren)) {
       if (!u || !Number.isFinite(u.gesamt) || !Number.isFinite(u.rest)) continue;
       const ende = Number.isFinite(u.ende) ? u.ende : null;
@@ -415,7 +433,8 @@ function wieLetzteStunde() {
   if (hatInhalt && !confirm(`${S.aktiv + 1}. Stunde mit der letzten Stunde der ${k.name} überschreiben?`)) return;
   // alles außer der Hausaufgabe (die eigene bleibt); die offenen Phasen jener Stunde stecken schon im Ablauf,
   // Übertragenes von noch früher kommt nach vorn
-  const neu = pruefePlan({ ...structuredClone(k.plan), kurs: P.kurs.trim() || k.name, gelaufen: '' });
+  // die Stunde behält ihre Kennung (pid) — die alte Stunde des Kurses trägt ihre eigene
+  const neu = pruefePlan({ ...structuredClone(k.plan), pid: P.pid, kurs: P.kurs.trim() || k.name, gelaufen: '' });
   neu.abschluss.ha = P.abschluss.ha;
   neu.phasen = [...structuredClone(k.uebertrag), ...neu.phasen].slice(0, 12);
   neu.phasen.forEach(p => { p.id = neueId(); p.offen = false; });
@@ -479,9 +498,12 @@ const b64url = {
   ab: s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
 };
 const strom = async (bytes, umform) => new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(umform)).arrayBuffer());
+/* 2.3 (Zero: „Smartphone ist damit die Zentrale“): pid und Phasen-IDs reisen mit. Kommt der Plan mit derselben pid
+   zurück, aktualisiert er genau diese Stunde — auch während sie auf der Bühne läuft. „offen“ und „gelaufen“ bleiben
+   Sache des Geräts, auf dem die Stunde lief. */
 async function planLink(p) {
   const { gelaufen, ...rest } = structuredClone(p);
-  rest.phasen = rest.phasen.map(({ id, offen, ...x }) => x);
+  rest.phasen = rest.phasen.map(({ offen, ...x }) => x);
   const gepackt = await strom(new TextEncoder().encode(JSON.stringify(rest)), new CompressionStream('deflate-raw'));
   return location.origin + location.pathname + '#plan=' + b64url.an(gepackt);
 }
@@ -492,13 +514,16 @@ async function planAusLink(hash) {
   if (roh.length > 65536) return null;
   const o = JSON.parse(new TextDecoder().decode(roh));
   if (!o || typeof o !== 'object' || Array.isArray(o) || !Array.isArray(o.phasen)) return null;
-  // fremde Daten: nur was die Prüfung durchlässt; IDs, „offen“ und „gelaufen“ gehören dem Absender, nicht diesem Gerät
+  // fremde Daten: nur was die Prüfung durchlässt (IDs nur a–z0–9, eindeutig, nie ein festes Fenster);
+  // „offen“ und „gelaufen“ gehören dem Gerät, auf dem die Stunde lief
   const p = pruefePlan(o);
-  p.phasen.forEach(x => { x.id = neueId(); x.offen = false; });
+  p.phasen.forEach(x => { x.offen = false; });
   p.gelaufen = '';
   return p;
 }
 async function weitergeben() {
+  // ein Entwurf bekäme nach dem Neuladen eine neue pid — wer ihn weitergibt, belegt die Stunde
+  if (!S.stunden[S.aktiv]) speichere(true);
   const P = plan(), box = $('d-weiter-qr');
   let link = '', svg = '', grund = '';
   try { link = await planLink(P); } catch { grund = 'dieser Browser kann den Plan nicht verpacken.'; }
@@ -508,7 +533,7 @@ async function weitergeben() {
     catch { grund = 'zu lang für einen QR-Code, bitte „Link teilen“.'; }
   }
   $('d-weiter-text').textContent = `${S.aktiv + 1}. Stunde · ${fachAnzeige(P.fach)}${P.kurs.trim() ? ' · ' + P.kurs.trim() : ''}${P.thema.trim() ? ' · ' + P.thema.trim() : ''} — `
-    + (svg ? 'mit der Kamera des Handys scannen und dort übernehmen.' : grund);
+    + (svg ? 'am anderen Gerät in der App mit „Plan holen“ scannen, während der Stunde auf der Bühne mit „Update holen“.' : grund);
   if (svg) box.innerHTML = svg; else box.replaceChildren();
   box.hidden = !svg;
   box.dataset.link = link;
@@ -524,29 +549,188 @@ async function linkTeilen() {
   catch { $('d-weiter-teilen').textContent = 'Kopieren nicht möglich'; }
 }
 let eingang = null;
-async function importPruefen() {
+async function importPruefen() {   // mit #plan=… geöffnet (Kamera-App, geteilter Link)
   if (!location.hash.startsWith('#plan=')) return;
-  if (buehneAn) zurEinrichtung();   // nie über der laufenden Bühne übernehmen (Fremdprüfung 2.2: Uhr blieb stehen)
-  let p = null;
-  try { p = await planAusLink(location.hash); } catch { p = null; }
+  const hash = location.hash;
   history.replaceState(null, '', location.pathname + location.search);   // einmal übernehmen, nicht bei jedem Neuladen
-  if (!p) { alert('Dieser Link enthält keinen lesbaren Plan.'); return; }
+  await eingangLesen(hash);
+}
+/* Gemeinsamer Weg für Link und Scanner. Auf der Bühne: gleiche pid wie die laufende Stunde → sofort übernehmen,
+   die Bühne bleibt offen. Ein Code einer anderen Stunde aus „Update holen“ schließt die Bühne nicht (Fremdprüfung 2.3,
+   Befund 2) — nur ein geöffneter Link führt, wie in 2.2, erst zur Einrichtung (nie über der laufenden Bühne). */
+async function eingangLesen(hash, vonBuehne = false) {
+  let p = null;
+  try { p = await planAusLink(hash); } catch { p = null; }
+  if (!p) { meldung('Dieser Code enthält keinen lesbaren Plan.'); return; }
+  if (buehneAn && S.stunden[S.aktiv]?.pid === p.pid) { planAktualisieren(S.aktiv, p); meldung('Plan aktualisiert'); return; }
+  if (buehneAn && vonBuehne) { meldung('Dieser Code gehört zu einer anderen Stunde – in der Einrichtung mit „Plan holen“ übernehmen.'); return; }
+  if (buehneAn) zurEinrichtung();
   eingang = p;
-  const frei = S.stunden.findIndex(x => !x);
+  // Vorschlag: dieselbe Stunde, sonst eine freie, sonst eine, die gerade NICHT läuft — nie still die laufende ersetzen
+  const laeuft = laufFrisch() ? S.lauf.stunde : -1;
+  const gleich = S.stunden.findIndex(x => x && x.pid === p.pid), frei = S.stunden.findIndex(x => !x);
+  const sonst = S.aktiv !== laeuft ? S.aktiv : S.stunden.findIndex((x, i) => i !== laeuft);
   $('d-import-stunde').replaceChildren(...S.stunden.map((x, i) => h('option', { value: String(i) },
-    `${i + 1}. Stunde · ${x ? fachAnzeige(x.fach) + (x.thema.trim() ? ' · ' + x.thema.trim() : '') + ' (wird ersetzt)' : 'frei'}`)));
-  $('d-import-stunde').value = String(frei >= 0 ? frei : S.aktiv);
+    `${i + 1}. Stunde · ${x ? fachAnzeige(x.fach) + (x.thema.trim() ? ' · ' + x.thema.trim() : '')
+      + (i === gleich ? ' (wird aktualisiert)' : i === laeuft ? ' (läuft gerade – wird ersetzt)' : ' (wird ersetzt)') : 'frei'}`)));
+  $('d-import-stunde').value = String(gleich >= 0 ? gleich : frei >= 0 ? frei : sonst);
+  $('d-import-titel').textContent = gleich >= 0 ? 'Plan aktualisieren' : 'Plan übernehmen';
   $('d-import-text').textContent = `${fachAnzeige(p.fach)}${p.kurs.trim() ? ' · ' + p.kurs.trim() : ''}${p.thema.trim() ? ' · ' + p.thema.trim() : ''} · ${p.phasen.length} Phasen`;
   $('d-import').showModal();
 }
 function importUebernehmen() {
   const i = Number($('d-import-stunde').value);
   if (!eingang || !(i >= 0 && i < STUNDEN)) return;
-  S.stunden[i] = eingang; eingang = null;
-  S.aktiv = i; entwurf = null;
-  if (S.lauf?.stunde === i) S.lauf = null;
+  const p = eingang, update = S.stunden[i]?.pid === p.pid;
+  if (!update && laufFrisch() && S.lauf.stunde === i && !confirm(`Die ${i + 1}. Stunde läuft gerade. Trotzdem ersetzen? Ihre Uhren beginnen dann von vorn.`)) return;
+  eingang = null;
   $('d-import').close();
+  S.aktiv = i; entwurf = null;
+  if (update) { planAktualisieren(i, p); malEinrichten(); return; }
+  // eine Kennung, eine Stunde: steht dieselbe pid schon in einem anderen Platz, bekommt die Kopie hier eine eigene
+  if (S.stunden.some((x, k) => x && k !== i && x.pid === p.pid)) p.pid = neueId();
+  S.stunden[i] = p;
+  if (S.lauf?.stunde === i) S.lauf = null;
   speichere(true); malEinrichten();
+}
+/* Update einer Stunde, die dieses Gerät schon hat (gleiche pid). Die pid bleibt einem Platz über Tage treu — darum
+   zwei Fälle (Fremdprüfung 2.3, Befund 1: sonst schrieb der Plan für morgen das Kurs-Gedächtnis der Stunde von heute um):
+   · Die Stunde läuft gerade (auf der Bühne, oder ihr Lauf ist frisch und heute gestartet): Inhalt vom Handy, Lauf von hier.
+     Uhren hängen an den Phasen-IDs und laufen weiter; eine geänderte Dauer verschiebt das Ende (kürzer als schon gelaufen:
+     Ende jetzt, wie „− 1“). „blieb offen“ und „gelaufen“ bleiben die dieses Geräts.
+   · Sonst ist es ein neuer Plan für diesen Platz, wie eine Übernahme: nicht gelaufen, nichts offen, kein alter Lauf. */
+const fensterIds = P => ['start', 'heute', ...P.phasen.map(p => p.id), 'abschluss'];
+const laeuftGerade = i => (buehneAn && i === S.aktiv) || (laufFrisch() && S.lauf.stunde === i && S.stunden[i]?.gelaufen === heute());
+function planAktualisieren(i, neu) {
+  const alt = S.stunden[i];
+  if (!laeuftGerade(i)) {
+    neu.phasen.forEach(p => { p.offen = false; });
+    neu.gelaufen = '';
+    S.stunden[i] = neu;
+    if (S.lauf?.stunde === i) S.lauf = null;
+    schreibe(true);
+    return;
+  }
+  const offen = new Set(alt.phasen.filter(p => p.offen).map(p => p.id));
+  // gleiche Stunde, aber neue IDs (am Handy Muster geladen, Ablauf zurückgesetzt …): eine Uhr, deren Phase fehlt, geht auf
+  // die neue Phase an derselben Stelle über, wenn sie dieselbe Form hat (Befund 5)
+  const altIds = new Set(alt.phasen.map(p => p.id)), neuIds = new Set(neu.phasen.map(p => p.id)), umbenannt = new Map();
+  neu.phasen.forEach((p, k) => { const a = alt.phasen[k]; if (a && !neuIds.has(a.id) && !altIds.has(p.id) && a.typ === p.typ) umbenannt.set(a.id, p.id); });
+  for (const [a, n] of umbenannt) {
+    if (S.lauf.uhren[a] && !S.lauf.uhren[n]) { S.lauf.uhren[n] = S.lauf.uhren[a]; delete S.lauf.uhren[a]; }
+    if (offen.has(a)) offen.add(n);
+  }
+  neu.phasen.forEach(p => { p.offen = offen.has(p.id); });
+  neu.gelaufen = alt.gelaufen;
+  S.stunden[i] = neu;
+  // dieselbe Stelle im Ablauf, auch wenn davor Phasen dazukamen oder wegfielen; fiel sie selbst weg, die nächste alte
+  // Stelle, die es noch gibt (Befund 4: sonst sprang die Bühne beim Löschen zweier Phasen auf den Abschluss)
+  const altF = fensterIds(alt).map(id => umbenannt.get(id) ?? id), neuF = fensterIds(neu);
+  const warId = altF[S.lauf.index], warUhr = S.lauf.uhren[warId];
+  let j = -1;
+  for (let k = S.lauf.index; k < altF.length && j < 0; k++) j = neuF.indexOf(altF[k]);
+  S.lauf.index = j >= 0 ? j : neuF.length - 1;
+  uhrenAnpassen(neu, S.lauf.index);
+  // lief die aktuelle Phase und fiel weg: mit Selbstlauf beginnt die nachgerückte jetzt, sonst stünde die Stunde still
+  const nach = neu.phasen.find(p => p.id === neuF[S.lauf.index]);
+  if (!neuIds.has(warId) && warUhr?.ende != null && !warUhr.weiter && Date.now() < warUhr.ende && S.selbstlauf && nach && !S.lauf.uhren[nach.id]?.gestartet) {
+    const nu = uhrFuer(nach.id, nach.min);
+    nu.gestartet = true; nu.gemeldet = false; nu.ende = Date.now() + nu.rest;
+  }
+  kursMerken(i);
+  schreibe(true);
+  if (buehneAn && i === S.aktiv) buehneNeu();
+}
+function uhrenAnpassen(P, jetztIndex) {
+  const jetzt = Date.now(), ids = fensterIds(P);
+  for (const p of P.phasen) {
+    const u = S.lauf.uhren[p.id];
+    // nicht gestartete Uhren baut uhrFuer mit der neuen Dauer neu; von einer weitergeschalteten Uhr läuft schon die nächste;
+    // Phasen vor der aktuellen sind vorbei und bleiben es (Befund 3: sonst lief eine abgelaufene wieder und klingelte zweimal)
+    if (!u || !u.gestartet || u.weiter || u.plan === p.min || ids.indexOf(p.id) < jetztIndex) continue;
+    const d = (p.min - u.plan) * 60e3;
+    u.plan = p.min;
+    if (u.ende != null) u.ende = d > 0 ? u.ende + d : Math.max(jetzt, u.ende + d);
+    else { u.rest = Math.max(0, u.rest + d); if (!u.rest) u.ende = jetzt; }   // angehalten, aber schon länger als neu geplant: endet jetzt (Befund 8)
+    u.gesamt = Math.max(p.min * 60e3, restVon(u));
+    if (restVon(u) > 0) u.gemeldet = false;
+  }
+}
+
+/* Meldung: auf der Bühne leise unten (liest die Klasse mit), in der Einrichtung als Hinweis */
+let meldungTimer = 0;
+function meldung(t) {
+  if (!buehneAn) { alert(t); return; }
+  const m = $('b-meldung');
+  m.textContent = t; m.hidden = false;
+  clearTimeout(meldungTimer);
+  meldungTimer = setTimeout(() => { m.hidden = true; }, 3500);
+}
+
+/* ─── Scanner (2.3, Muster Werft-Arena guest.js): Kamera → BarcodeDetector, wo es ihn gibt, sonst jsQR (Apache-2.0,
+   aus der Arena, erst beim ersten Scan geladen). Die Vorschau ist klein und unscharf: am Beamer gespiegelt soll
+   niemand zu erkennen sein — gelesen wird das Kamerabild, nicht die Vorschau. ─── */
+let scanStrom = null, scanLauf = 0, scanZiel = null;
+function jsqrLaden() {
+  if (window.jsQR) return Promise.resolve(true);
+  return new Promise(fertig => {
+    const s = document.createElement('script');
+    s.src = './js/vendor/jsqr.js?v=' + APP_VERSION;
+    s.onload = () => fertig(typeof window.jsQR === 'function');
+    s.onerror = () => fertig(false);
+    document.head.append(s);
+  });
+}
+function kameraAus() {
+  scanLauf++;
+  scanStrom?.getTracks().forEach(t => t.stop());
+  scanStrom = null;
+  $('d-scan-video').srcObject = null;
+}
+async function scannen(ziel) {
+  const d = $('d-scan'), video = $('d-scan-video'), hinweis = $('d-scan-text');
+  scanZiel = ziel;
+  kameraAus();
+  const lauf = scanLauf;
+  hinweis.textContent = 'Kamera startet …';
+  if (!d.open) d.showModal();
+  if (!navigator.mediaDevices?.getUserMedia) { hinweis.textContent = 'In dieser Ansicht gibt es keinen Zugriff auf die Kamera.'; return; }
+  let det = null;
+  if ('BarcodeDetector' in window) try { det = new BarcodeDetector({ formats: ['qr_code'] }); } catch { det = null; }
+  if (!det && !(await jsqrLaden())) { hinweis.textContent = 'Der Scanner ließ sich nicht laden.'; return; }
+  // während des Ladens abgebrochen: dann auch keine Kamera anfragen (Befund 9). d.open gilt sofort, das close-Ereignis
+  // (→ kameraAus) kommt erst als eigene Aufgabe — im Endlauf lud jsQR einmal schneller, und die Kamera wurde doch angefragt
+  if (lauf !== scanLauf || !d.open) return;
+  let strom;
+  try { strom = await navigator.mediaDevices.getUserMedia({ video: { facingMode: S.kamera, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }); }
+  catch (e) { if (lauf === scanLauf) hinweis.textContent = `Die Kamera ließ sich nicht öffnen (${e?.name || 'Fehler'}). Erlaubnis in den Einstellungen prüfen.`; return; }
+  if (lauf !== scanLauf || !d.open) { strom.getTracks().forEach(t => t.stop()); return; }   // inzwischen abgebrochen
+  scanStrom = strom;
+  video.srcObject = strom;
+  try { await video.play(); } catch { /* spielt mit dem nächsten Bild */ }
+  hinweis.textContent = 'Den QR-Code vom anderen Gerät vor die Kamera halten.';
+  const cv = document.createElement('canvas'), g = cv.getContext('2d', { willReadFrequently: true });
+  let zuletzt = 0, fremd = false;
+  const tick = async () => {
+    if (lauf !== scanLauf) return;
+    if (video.readyState >= 2 && performance.now() - zuletzt > 250) {
+      zuletzt = performance.now();
+      const w = video.videoWidth, hh = video.videoHeight, f = Math.min(1, 1024 / Math.max(w, hh));
+      cv.width = Math.round(w * f); cv.height = Math.round(hh * f);
+      g.drawImage(video, 0, 0, cv.width, cv.height);
+      let txt = null;
+      if (det) try { txt = (await det.detect(cv))[0]?.rawValue || null; } catch { det = null; jsqrLaden(); }
+      if (!txt && !det && window.jsQR) txt = window.jsQR(g.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height, { inversionAttempts: 'dontInvert' })?.data || null;
+      if (lauf !== scanLauf) return;
+      if (txt) {
+        const m = /#plan=[A-Za-z0-9_-]+/.exec(txt);
+        if (m) { kameraAus(); d.close(); scanZiel?.(m[0]); return; }
+        if (!fremd) { fremd = true; hinweis.textContent = 'Das ist kein Plan-Code aus dem Stundenverlauf.'; }
+      }
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 
 function musterLoeschen(i) {
@@ -698,6 +882,7 @@ function initEinrichten() {
     e.target.value = '';
     if (!q || (S.stunden[S.aktiv] && !confirm(`${n}. Stunde mit diesem Plan überschreiben?`))) return;
     const kopie = pruefePlan(JSON.parse(JSON.stringify(q)));
+    kopie.pid = plan().pid;   // eine Kennung, eine Stunde: die Kopie gehört zu diesem Platz, nicht zur Quelle
     kopie.kurs = plan().kurs; kopie.gelaufen = '';
     kopie.phasen.forEach(p => { p.id = neueId(); p.offen = false; });
     S.stunden[S.aktiv] = kopie; entwurf = null;
@@ -716,6 +901,12 @@ function initEinrichten() {
   $('e-ab-text').addEventListener('input', e => { plan().abschluss.text = e.target.value; speichere(); });
   $('e-eigen-plus').addEventListener('click', eigenesHinzu);
   $('e-weitergeben').addEventListener('click', weitergeben);
+  $('e-holen').addEventListener('click', () => scannen(eingangLesen));
+  // nach dem Schließen kehrt der Fokus auf „Update holen“ zurück — dann löste die Leertaste (Presenter, Tastatur)
+  // den Scanner neu aus, statt die Uhr zu starten (Befund 10)
+  $('d-scan').addEventListener('close', () => { kameraAus(); if (document.activeElement?.id === 'b-update') document.activeElement.blur(); });
+  $('d-scan-zu').addEventListener('click', () => $('d-scan').close());
+  $('d-scan-kamera').addEventListener('click', () => { S.kamera = S.kamera === 'user' ? 'environment' : 'user'; schreibe(); scannen(scanZiel); });
   $('d-weiter-teilen').addEventListener('click', linkTeilen);
   $('d-weiter-zu').addEventListener('click', () => { $('d-weiter').close(); $('d-weiter-teilen').textContent = 'Link teilen'; });
   $('d-import-ja').addEventListener('click', importUebernehmen);
@@ -955,11 +1146,10 @@ function starteBuehne(neu) {
   speichere();   // eine gestartete Stunde ist belegt, auch ohne Eintrag
   kursMerken(S.aktiv, true);
   schreibe();
-  if (neu || !laufGueltig()) S.lauf = { stunde: S.aktiv, index: 0, uhren: {}, stand: Date.now() };
+  if (neu || !laufGueltig()) S.lauf = { stunde: S.aktiv, index: 0, uhren: Object.create(null), stand: Date.now() };
   fensterListe = bauFenster();
   aktuell = Math.min(S.lauf.index, fensterListe.length - 1);
-  $('b-fach').textContent = fachAnzeige() + (plan().kurs.trim() ? ' · ' + plan().kurs.trim() : '');
-  $('b-lk').textContent = S.lehrkraft.trim() ? ' · ' + S.lehrkraft.trim() : '';
+  malBuehnenKopf();
   $('einrichten').hidden = true;
   $('buehne').hidden = false;
   document.documentElement.classList.add('auf-buehne');
@@ -967,6 +1157,19 @@ function starteBuehne(neu) {
   scrollTo(0, 0);
   wachHalten();
   takt();
+  zeigeFenster(aktuell);
+}
+function malBuehnenKopf() {
+  $('b-fach').textContent = fachAnzeige() + (plan().kurs.trim() ? ' · ' + plan().kurs.trim() : '');
+  $('b-lk').textContent = S.lehrkraft.trim() ? ' · ' + S.lehrkraft.trim() : '';
+}
+/* Update vom Handy während der Stunde: Fenster neu aus dem Plan, gleiche Stelle (S.lauf.index hat planAktualisieren
+   schon umgerechnet), kein Übergang — für die Klasse ändert sich nur der Inhalt */
+function buehneNeu() {
+  fensterListe = bauFenster();
+  aktuell = Math.min(S.lauf?.index ?? aktuell, fensterListe.length - 1);
+  setzeFarbe();
+  malBuehnenKopf();
   zeigeFenster(aktuell);
 }
 function zurEinrichtung() {
@@ -1074,12 +1277,18 @@ function vollbildAus() {
   if (!(document.fullscreenElement || document.webkitFullscreenElement)) return;
   try { const p = (document.exitFullscreen || document.webkitExitFullscreen).call(document); p?.catch?.(() => {}); } catch {}
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { wachHalten(); takt(); } });
+// verborgen (App-Wechsel, anderer Tab): der Scanner schließt, damit die Kamera nicht im Hintergrund an bleibt (Befund 11)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') { wachHalten(); takt(); }
+  else if ($('d-scan').open) $('d-scan').close();
+});
 
 function initBuehne() {
   $('b-vor').append(icon('links'));
   $('b-weiter').append(icon('rechts'));
   $('b-zurueck').append(icon('zahnrad'));
+  $('b-update').append(icon('scan'));
+  $('b-update').addEventListener('click', () => scannen(hash => eingangLesen(hash, true)));
   $('b-vor').addEventListener('click', () => zeigeFenster(aktuell - 1));
   $('b-weiter').addEventListener('click', () => zeigeFenster(aktuell + 1));
   $('b-zurueck').addEventListener('click', zurEinrichtung);
@@ -1112,7 +1321,7 @@ function initBuehne() {
 
   // Tastatur und Presenter: Pfeile/Bild auf-ab blättern, Leertaste/Enter startet oder hält die Uhr
   document.addEventListener('keydown', e => {
-    if (!buehneAn || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (!buehneAn || e.altKey || e.ctrlKey || e.metaKey || document.querySelector('dialog[open]')) return;
     const k = e.key;
     if (k === 'ArrowRight' || k === 'PageDown') { e.preventDefault(); zeigeFenster(aktuell + 1); }
     else if (k === 'ArrowLeft' || k === 'PageUp') { e.preventDefault(); zeigeFenster(aktuell - 1); }
@@ -1124,7 +1333,8 @@ function initBuehne() {
 
 initEinrichten();
 initBuehne();
-importPruefen();   // mit #plan=… geöffnet (QR-Code vom iPad): Plan übernehmen
+if (pidNeu) schreibe(true);   // Stand vor 2.3: die neuen Kennungen gleich festhalten
+importPruefen();   // mit #plan=… geöffnet (Kamera-App, geteilter Link): Plan übernehmen oder Stunde aktualisieren
 
 /* PWA: offline über den Service Worker. Ein Update wird nur in der Einrichtung angeboten, nie mitten in der Stunde. */
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {

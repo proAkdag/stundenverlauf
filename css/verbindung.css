@@ -1,0 +1,29 @@
+/* Verbindungstest · schlicht, lesbar am Handy (412) und iPad; Farben wie die Einrichtung des Stundenverlaufs */
+:root { --grund: #f4f6fa; --flaeche: #fff; --text: #1d1b16; --leise: #5b5f68; --kante: #cfd5df; --akzent: #1f5fae; --gut: #1e7a3c; --warn: #9a5b00; }
+@media (prefers-color-scheme: dark) {
+  :root { --grund: #14161b; --flaeche: #1d2027; --text: #eceae4; --leise: #a3a8b3; --kante: #3a3f4a; --akzent: #7fb0ff; --gut: #7ad19a; --warn: #f0b35a; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--grund); color: var(--text); font: 17px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 640px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 32px max(16px, env(safe-area-inset-left)); }
+h1 { font-size: 26px; margin: 8px 0 4px; }
+h2 { font-size: 17px; margin: 20px 0 8px; }
+.leise { color: var(--leise); font-size: 15px; }
+.schalter { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0; }
+.schalter input { width: 22px; height: 22px; flex: none; margin-top: 2px; }
+.reihe { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.knopf { min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1.5px solid var(--kante); background: var(--flaeche); color: var(--text); font: inherit; font-weight: 600; flex: 1 1 auto; }
+.knopf.haupt { background: var(--akzent); border-color: var(--akzent); color: #fff; }
+.status { padding: 10px 12px; border-radius: 12px; background: var(--flaeche); border: 1.5px solid var(--kante); }
+.status.gut { border-color: var(--gut); color: var(--gut); font-weight: 650; }
+.status.warn { border-color: var(--warn); color: var(--warn); }
+section { margin-top: 8px; }
+.qr { background: #fff; border-radius: 10px; padding: 6px; width: min(100%, 420px); margin: 0 auto 10px; }
+.qr svg { display: block; width: 100%; height: auto; }
+textarea { width: 100%; font: 13px/1.35 ui-monospace, Consolas, monospace; padding: 8px; border-radius: 10px; border: 1.5px solid var(--kante); background: var(--flaeche); color: var(--text); margin-bottom: 8px; }
+.kamera { width: min(100%, 320px); aspect-ratio: 4 / 3; margin: 0 auto 10px; border-radius: 12px; overflow: hidden; background: #000; }
+.kamera video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ergebnis { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; }
+.ergebnis dt { color: var(--leise); }
+.ergebnis dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+[hidden] { display: none !important; }

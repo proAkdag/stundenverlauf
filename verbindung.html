@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- ╔═══ VERBINDUNGSTEST · Stundenverlauf 2.3, Scheibe B (Zero 2026-09-30: Handy ↔ iPad live) ══════════════════╗
+     Misst im echten Aufbau (beide Geräte über mobile Daten), ob eine Direktverbindung (WebRTC) trägt und über
+     welchen Weg. Handshake per QR wie im Notfall-P2P der Werft-Arena (arena_src/js/core/guest.js). Kein eigener
+     Server. Mit dem Häkchen (vorbelegt, weil beide Geräte über mobile Daten laufen sollen) fragt jedes Gerät einmal
+     einen Adress-Helfer (STUN, Google) nach seiner öffentlichen Adresse; Google sieht dabei die IP-Adressen.
+     Die Test-Nachrichten (Zeitstempel) gehen verschlüsselt direkt von Gerät zu Gerät, nie über Google.
+     Eigene Version (t1), unabhängig von der App: geht nicht mit deploy_pages.cmd raus, nur einzeln auf Zeros Wort.
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝ -->
+<title>Verbindungstest</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; media-src mediastream: blob:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="stylesheet" href="./css/verbindung.css?v=t1">
+<!-- QR-Bausteine der App (qrcode-generator MIT, jsQR Apache-2.0, beide aus der Werft-Arena) — ohne ?v, damit sie der
+     Version der App nicht folgen müssen (Befund 16) -->
+<script src="./js/vendor/qrcode.js" defer></script>
+<script type="module" src="./js/verbindung.mjs?v=t1"></script>
+</head>
+<body>
+<main>
+  <h1>Verbindungstest</h1>
+  <p class="leise">Prüft, ob sich Handy und iPad direkt verbinden: erst am iPad „Einladen“, am Handy „Beitreten“, dann die Codes gegenseitig scannen.</p>
+
+  <label class="schalter"><input type="checkbox" id="v-stun" checked><span>Adress-Helfer (STUN) verwenden <span class="leise">– ein Google-Server sieht dabei die IP-Adressen beider Geräte</span></span></label>
+
+  <div class="reihe">
+    <button type="button" class="knopf haupt" id="v-einladen">Einladen (iPad)</button>
+    <button type="button" class="knopf" id="v-beitreten">Beitreten (Handy)</button>
+  </div>
+
+  <p class="status" id="v-status" role="status">Noch nichts gestartet.</p>
+
+  <section id="v-aus" hidden>
+    <h2 id="v-aus-titel">Code</h2>
+    <div class="qr" id="v-qr"></div>
+    <textarea id="v-code" rows="3" readonly aria-label="Code als Text"></textarea>
+    <button type="button" class="knopf" id="v-teilen">Code kopieren / teilen</button>
+  </section>
+
+  <section id="v-ein" hidden>
+    <h2 id="v-ein-titel">Code vom anderen Gerät</h2>
+    <div class="reihe">
+      <button type="button" class="knopf haupt" id="v-scan">Code scannen</button>
+      <button type="button" class="knopf" id="v-kamera">Andere Kamera</button>
+    </div>
+    <div class="kamera" id="v-kamera-rahmen" hidden><video id="v-video" muted playsinline autoplay></video></div>
+    <textarea id="v-einfuegen" rows="3" placeholder="… oder den Code hier einfügen" aria-label="Code einfügen"></textarea>
+    <button type="button" class="knopf" id="v-nehmen">Eingefügten Code übernehmen</button>
+  </section>
+
+  <section>
+    <h2>Ergebnis</h2>
+    <dl class="ergebnis">
+      <dt>Verbindung</dt><dd id="e-verbindung">–</dd>
+      <dt>Weg</dt><dd id="e-weg">–</dd>
+      <dt>Laufzeit</dt><dd id="e-rtt">–</dd>
+      <dt>Hält seit</dt><dd id="e-seit">–</dd>
+      <dt>Eigene Adressen</dt><dd id="e-eigen">–</dd>
+      <dt>Ansicht</dt><dd id="e-ansicht">–</dd>
+      <dt>Kamera</dt><dd id="e-kamera">–</dd>
+    </dl>
+    <p class="leise">Zum Test des Hintergrunds: nach „verbunden“ am Handy kurz in eine andere App wechseln und zurückkommen. „Hält seit“ zeigt, ob die Verbindung überlebt hat.</p>
+  </section>
+</main>
+</body>
+</html>
