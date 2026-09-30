@@ -1,6 +1,6 @@
 // Stundenverlauf · App (aus stundenverlauf_v1.html aufgeteilt am 2026-09-30, seitdem hier die Quelle)
 // Version: APP_VERSION = CACHE_NAME im Service Worker = ?v= in index.html — beim Ändern alle drei heben.
-export const APP_VERSION = '2.0.0';
+export const APP_VERSION = '2.2.0';
 
 /* ─── Fachfarben: [Farbton, Helligkeitsstufe] je Fach, übernommen aus der Kladde
    (Klausurkorrektur/kladde/app/logic/fachfarben.mjs, FAECHER, Stand v1.10.1). ─── */
@@ -25,13 +25,15 @@ const MATERIAL = [
 ];
 const MAT_NAME = Object.fromEntries(MATERIAL);
 
+/* laut = Stufe des Lautstärke-Zeichens (Zero 2026-09-30: Einzel still · Partner flüstern · Gruppe leise · Plenum eine Person) */
 const FORM = {
-  einzel:  { name: 'Einzelarbeit',  kurz: 'Einzel',  hinweis: () => 'Du arbeitest allein und leise.' },
-  partner: { name: 'Partnerarbeit', kurz: 'Partner', hinweis: () => 'Ihr arbeitet zu zweit und flüstert.' },
-  gruppe:  { name: 'Gruppenarbeit', kurz: 'Gruppe',  hinweis: p => `Ihr arbeitet in ${p.groesse}er-Gruppen mit leiser Stimme.` },
-  plenum:  { name: 'Plenum',        kurz: 'Plenum',  hinweis: () => 'Wir arbeiten alle zusammen. Eine Person spricht, alle hören zu.' },
-  pause:   { name: 'Pause',         kurz: 'Pause',   hinweis: () => 'Kurz durchatmen – gleich geht es weiter.' },
+  einzel:  { name: 'Einzelarbeit',  kurz: 'Einzel',  laut: 0,    hinweis: () => 'Du arbeitest allein und still.' },
+  partner: { name: 'Partnerarbeit', kurz: 'Partner', laut: 1,    hinweis: () => 'Ihr arbeitet zu zweit und flüstert.' },
+  gruppe:  { name: 'Gruppenarbeit', kurz: 'Gruppe',  laut: 2,    hinweis: p => `Ihr arbeitet in ${p.groesse}er-Gruppen mit leiser Stimme.` },
+  plenum:  { name: 'Plenum',        kurz: 'Plenum',  laut: 3,    hinweis: () => 'Wir arbeiten alle zusammen. Eine Person spricht, alle hören zu.' },
+  pause:   { name: 'Pause',         kurz: 'Pause',   laut: null, hinweis: () => 'Kurz durchatmen – gleich geht es weiter.' },
 };
+const LAUT = ['still', 'flüstern', 'leise', 'eine Person spricht'];
 const ARBEIT = ['einzel', 'partner', 'gruppe', 'plenum'];
 const ABSCHLUSS_STANDARD = 'Wir sichern gemeinsam, was du heute gelernt hast.';
 
@@ -71,6 +73,11 @@ const PFADE = {
   x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
   zahnrad: '<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2L5.5 5.5"/><circle cx="12" cy="12" r="6.5"/>',
   vollbild: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+  laut: '<path d="M3.5 9.5h3.8L12 5.3v13.4l-4.7-4.2H3.5z"/>',
+  still: '<path d="M3.5 9.5h3.8L12 5.3v13.4l-4.7-4.2H3.5z"/><path d="M15.5 9.5l5 5M20.5 9.5l-5 5"/>',
+  ziel: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
+  danach: '<path d="M4 12h14"/><path d="M13 6.5l5.5 5.5-5.5 5.5"/>',
+  fertig: '<path d="M4.5 12.5l4.5 4.5 10.5-11"/>',
 };
 const ICON_CACHE = {};
 function icon(name) {
@@ -98,59 +105,94 @@ function h(tag, attrs = {}, ...kinder) {
 }
 
 /* ─── Speicher: sechs Stunden des Tages, jede mit eigenem Plan (Zero 2026-09-30).
-   localStorage dieses Geräts; ohne Speicher läuft die Seite trotzdem. ─── */
+   localStorage dieses Geräts; ohne Speicher läuft die Seite trotzdem.
+   Format (Schlüssel stundenverlauf.v2, seit 2.1.0 um Felder erweitert, alte Stände laden unverändert):
+     stunden[6]  Plan | null — Plan: fach, kurs, thema, modul, ziel, material[], eigenes[], einstieg,
+                 phasen[{id, typ, min, groesse, auftrag, fertig, offen}], abschluss{min, text, ha}, gelaufen ('JJJJ-MM-TT' | '')
+     muster[]    {name, einstieg, phasen[{typ, min, groesse}], abschlussMin, material[], eigenes[]} — nur Ablauf und Material (Zero)
+     kurse{}     Schlüssel = Kursname klein → {name, datum, stunde, plan, uebertrag[Phase], offenErledigt} — zuletzt gestartete
+                 Stunde je Kurs; ein Objekt ohne Prototyp, damit Kursnamen wie „constructor“ nichts Geerbtes treffen
+     selbstlauf  Phasen wechseln nach Ablauf der Zeit von selbst (Schalter, aus)
+   Jedes Feld läuft beim Laden durch seine Prüfung — ein Feld, das dort fehlt, geht beim Neuladen verloren. ─── */
 const SCHLUESSEL = 'stundenverlauf.v2';
 const STUNDEN = 6;
 const LAUF_GUELTIG_MS = 4 * 3600e3;
+const MUSTER_MAX = 20, KURSE_MAX = 40;
 let speicherGeht = true;
 const neueId = () => Math.random().toString(36).slice(2, 10);
 const zahl = (v, min, max, std) => { const n = Number(v); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : std; };
 const text = (v, max = 200) => typeof v === 'string' ? v.slice(0, max) : '';
+const heute = () => { const d = new Date(Date.now()); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const kursSchluessel = k => (k || '').trim().toLowerCase();
+// nur eigene Schlüssel: „constructor“ oder „toString“ aus einem fremden Link sind kein Fach und keine Sozialform (Fremdprüfung 2.2)
+const hat = (o, k) => typeof k === 'string' && Object.hasOwn(o, k);
 
+function neuePhase(typ, min, groesse = 4) { return { id: neueId(), typ, min, groesse, auftrag: '', fertig: '', offen: false }; }
 function standardPlan(fach = 'Mathematik') {
   return {
-    fach, thema: '', modul: '',
+    fach, kurs: '', thema: '', modul: '', ziel: '',
     material: ['ipad', 'buch', 'mappe', 'schreibzeug'], eigenes: [],
     einstieg: 5,
-    phasen: [
-      { id: neueId(), typ: 'einzel', min: 20, groesse: 4, auftrag: '' },
-      { id: neueId(), typ: 'pause', min: 5, groesse: 4, auftrag: '' },
-      { id: neueId(), typ: 'partner', min: 20, groesse: 4, auftrag: '' },
-    ],
+    phasen: [neuePhase('einzel', 20), neuePhase('pause', 5), neuePhase('partner', 20)],
     abschluss: { min: 10, text: '', ha: '' },
+    gelaufen: '',
   };
 }
+const pruefeMaterial = (m, std) => Array.isArray(m) ? MATERIAL.map(x => x[0]).filter(x => m.includes(x)) : std;
+const pruefeEigenes = e => Array.isArray(e) ? e.filter(x => typeof x === 'string' && x.trim()).map(x => x.slice(0, 40)).slice(0, 8) : [];
 function pruefePlan(p) {
   const d = standardPlan();
   if (!p || typeof p !== 'object') return d;
   return {
-    fach: FAECHER[p.fach] ? p.fach : d.fach,
-    thema: text(p.thema, 120), modul: text(p.modul, 120),
-    material: Array.isArray(p.material) ? MATERIAL.map(m => m[0]).filter(m => p.material.includes(m)) : d.material,
-    eigenes: Array.isArray(p.eigenes) ? p.eigenes.filter(x => typeof x === 'string' && x.trim()).map(x => x.slice(0, 40)).slice(0, 8) : [],
+    fach: hat(FAECHER, p.fach) ? p.fach : d.fach,
+    kurs: text(p.kurs, 20),
+    thema: text(p.thema, 120), modul: text(p.modul, 120), ziel: text(p.ziel, 160),
+    material: pruefeMaterial(p.material, d.material),
+    eigenes: pruefeEigenes(p.eigenes),
     einstieg: Math.round(zahl(p.einstieg, 0, 60, d.einstieg)),
     phasen: Array.isArray(p.phasen)
-      ? p.phasen.filter(x => x && FORM[x.typ]).slice(0, 12).map(x => ({
+      ? p.phasen.filter(x => x && hat(FORM, x.typ)).slice(0, 12).map(x => ({
           id: typeof x.id === 'string' && x.id ? x.id.slice(0, 20) : neueId(), typ: x.typ,
           min: Math.round(zahl(x.min, 1, 120, 10)), groesse: Math.round(zahl(x.groesse, 3, 8, 4)), auftrag: text(x.auftrag, 600),
+          fertig: text(x.fertig, 200), offen: x.offen === true,
         }))
       : d.phasen,
     abschluss: { min: Math.round(zahl(p.abschluss?.min, 0, 60, 10)), text: text(p.abschluss?.text, 160), ha: text(p.abschluss?.ha, 400) },
+    gelaufen: /^\d{4}-\d\d-\d\d$/.test(p.gelaufen) ? p.gelaufen : '',
   };
+}
+function pruefeMuster(m) {
+  if (!m || typeof m !== 'object' || typeof m.name !== 'string' || !m.name.trim() || !Array.isArray(m.phasen)) return null;
+  const phasen = m.phasen.filter(x => x && hat(FORM, x.typ)).slice(0, 12)
+    .map(x => ({ typ: x.typ, min: Math.round(zahl(x.min, 1, 120, 10)), groesse: Math.round(zahl(x.groesse, 3, 8, 4)) }));
+  if (!phasen.length) return null;
+  return { name: m.name.trim().slice(0, 40), einstieg: Math.round(zahl(m.einstieg, 0, 60, 5)), phasen,
+    abschlussMin: Math.round(zahl(m.abschlussMin, 0, 60, 10)), material: pruefeMaterial(m.material, []), eigenes: pruefeEigenes(m.eigenes) };
+}
+function pruefeKurs(k) {
+  if (!k || typeof k !== 'object' || typeof k.name !== 'string' || !k.name.trim() || !/^\d{4}-\d\d-\d\d$/.test(k.datum) || !k.plan) return null;
+  return { name: k.name.trim().slice(0, 20), datum: k.datum, stunde: Math.round(zahl(k.stunde, 0, STUNDEN - 1, 0)),
+    plan: pruefePlan(k.plan), uebertrag: Array.isArray(k.uebertrag) ? pruefePlan({ phasen: k.uebertrag }).phasen : [],
+    offenErledigt: k.offenErledigt === true };
 }
 function ladeSpeicher() {
   let roh = null;
   try { roh = JSON.parse(localStorage.getItem(SCHLUESSEL) || 'null'); } catch { speicherGeht = false; }
   const s = {
-    lehrkraft: 'Akdağ', theme: 'hell', signal: true, stunde: 67.5, aktiv: 0, stunden: Array(STUNDEN).fill(null), lauf: null,
+    lehrkraft: 'Akdağ', theme: 'hell', signal: true, selbstlauf: false, stunde: 67.5, aktiv: 0, stunden: Array(STUNDEN).fill(null), lauf: null,
+    muster: [], kurse: Object.create(null),
   };
   if (!roh || typeof roh !== 'object') return s;
   if (typeof roh.lehrkraft === 'string') s.lehrkraft = roh.lehrkraft.slice(0, 40);
   if (roh.theme === 'dunkel') s.theme = 'dunkel';
   s.signal = roh.signal !== false;
+  s.selbstlauf = roh.selbstlauf === true;
   if ([45, 60, 67.5, 90].includes(roh.stunde)) s.stunde = roh.stunde;
   s.aktiv = Math.round(zahl(roh.aktiv, 0, STUNDEN - 1, 0));
   if (Array.isArray(roh.stunden)) roh.stunden.slice(0, STUNDEN).forEach((p, i) => { if (p) s.stunden[i] = pruefePlan(p); });
+  if (Array.isArray(roh.muster)) s.muster = roh.muster.map(pruefeMuster).filter(Boolean).slice(0, MUSTER_MAX);
+  if (roh.kurse && typeof roh.kurse === 'object')
+    for (const [schl, k] of Object.entries(roh.kurse)) { const g = pruefeKurs(k); if (g && schl === kursSchluessel(g.name)) s.kurse[schl] = g; }
   const l = roh.lauf;
   if (l && Number.isInteger(l.stunde) && s.stunden[l.stunde] && Number.isFinite(l.stand) && Date.now() - l.stand < LAUF_GUELTIG_MS && l.uhren && typeof l.uhren === 'object') {
     const uhren = {};
@@ -158,7 +200,8 @@ function ladeSpeicher() {
       if (!u || !Number.isFinite(u.gesamt) || !Number.isFinite(u.rest)) continue;
       const ende = Number.isFinite(u.ende) ? u.ende : null;
       // schon abgelaufen → kein Signal beim Öffnen; läuft noch → Signal am Ende wie sonst
-      uhren[id] = { gesamt: u.gesamt, rest: u.rest, ende, plan: u.plan, gestartet: !!u.gestartet, gemeldet: ende != null ? Date.now() >= ende : !!u.gemeldet };
+      // weiter = der Selbstlauf hat von dieser Uhr aus schon weitergeschaltet
+      uhren[id] = { gesamt: u.gesamt, rest: u.rest, ende, plan: u.plan, gestartet: !!u.gestartet, gemeldet: ende != null ? Date.now() >= ende : !!u.gemeldet, weiter: !!u.weiter };
     }
     s.lauf = { stunde: l.stunde, index: Math.round(zahl(l.index, 0, 40, 0)), uhren, stand: l.stand };
   }
@@ -189,8 +232,31 @@ function schreibe(sofort = false) {   // nur schreiben — für Einstellungen, d
 }
 function speichere(sofort = false) {  // Plan der gewählten Stunde geändert → sie ist ab jetzt belegt
   if (!S.stunden[S.aktiv] && entwurf) { S.stunden[S.aktiv] = entwurf; entwurf = null; }
+  kursMerken();
   malTag();
   schreibe(sofort);
+}
+/* Kurs-Gedächtnis: die zuletzt GESTARTETE Stunde eines Kurses wird seine „letzte Stunde“ — Grundlage für
+   „Wie letzte Stunde“ und „Offen vom letzten Mal“ an einem späteren Tag. Nur Plandaten, keine Namen.
+   Danach folgt der Eintrag den Änderungen genau dieser Stunde (auch einem geänderten Kursnamen); spätere
+   Änderungen an einer früheren Stunde desselben Tages verdrängen ihn nicht (Fremdprüfung 2026-09-30). */
+const offeneVon = k => [...k.uebertrag, ...k.plan.phasen.filter(p => p.offen)];
+function kursMerken(i = S.aktiv, start = false) {
+  const p = S.stunden[i];
+  if (!p || p.gelaufen !== heute()) return;
+  const schl = kursSchluessel(p.kurs);
+  const eigene = Object.keys(S.kurse).filter(k => S.kurse[k].datum === p.gelaufen && S.kurse[k].stunde === i);
+  if (!start && !eigene.length) return;
+  if (!schl) return;   // leeres Feld (mitten im Umbenennen): Eintrag bleibt unter seinem Namen stehen
+  const alt = S.kurse[schl] || null;
+  // Übertrag: was offen blieb und weder eingefügt noch verworfen wurde, geht beim nächsten Start nicht still verloren
+  const uebertrag = eigene.includes(schl) ? alt.uebertrag : alt && !alt.offenErledigt ? structuredClone(offeneVon(alt)).slice(0, 12) : [];
+  const offenErledigt = eigene.includes(schl) && alt.offenErledigt;
+  for (const k of eigene) delete S.kurse[k];
+  S.kurse[schl] = { name: p.kurs.trim(), datum: p.gelaufen, stunde: i, plan: structuredClone(p), uebertrag, offenErledigt };
+  const alle = Object.entries(S.kurse);
+  if (alle.length > KURSE_MAX)
+    alle.sort((a, b) => a[1].datum.localeCompare(b[1].datum)).slice(0, alle.length - KURSE_MAX).forEach(([k]) => delete S.kurse[k]);
 }
 addEventListener('pagehide', () => schreibe(true));
 
@@ -285,6 +351,15 @@ function auftragFeld(wert, { placeholder, label, max, klasse = '' }, beiEingabe)
   return h('div', { class: 'auftrag-feld ' + klasse }, ta,
     h('div', { class: 'auftrag-werkzeug' }, knopf('punkt', '• Punkte', 'Aufzählung mit Punkten'), knopf('nummer', '1. Nummern', 'Nummerierte Liste')));
 }
+/* Stichpunkt für die Anfangsübersicht: erste Zeile mit Inhalt (reine Listenzeichen zählen nicht), ohne Listenzeichen;
+   endet sie auf „:“ („Aufgaben:“), kommt die nächste Zeile dazu. Höchstens max Zeichen, an einer Wortgrenze gekürzt. */
+function stichpunkt(roh, max = 34) {
+  const zeilen = (roh || '').split('\n').map(z => z.replace(LISTE_RE, '').trim()).filter(z => /[\p{L}\p{N}]/u.test(z) && !/^\d+[.)]$/.test(z));
+  const t = (zeilen[0]?.endsWith(':') && zeilen[1] ? zeilen[0] + ' ' + zeilen[1] : zeilen[0] || '').replace(/\s*:$/, '');
+  if (t.length <= max) return t;
+  const schnitt = t.slice(0, max + 1).lastIndexOf(' ');
+  return t.slice(0, schnitt > max * .6 ? schnitt : max).replace(/[\s,;.:–-]+$/, '') + ' …';
+}
 /* Bühne: Text → Absätze und Listen (Nummern so, wie sie getippt wurden) */
 function auftragKasten(titel, roh) {
   const bloecke = [];
@@ -305,7 +380,180 @@ function malAnzeige() {
     segment('theme', [['hell', 'Hell'], ['dunkel', 'Dunkel']], S.theme, v => { S.theme = v; setzeFarbe(); schreibe(); }, 'Anzeige'),
     h('label', { class: 'schalter' },
       h('input', { type: 'checkbox', checked: S.signal, onchange: e => { S.signal = e.target.checked; schreibe(); } }),
-      'Signal am Ende'));
+      'Signal am Ende'),
+    // Selbstlauf (Zero 2026-09-30): ab dem Start der 1. Phase wechseln die Phasen nach Ablauf der Zeit von selbst
+    h('label', { class: 'schalter' },
+      h('input', { type: 'checkbox', id: 'e-selbstlauf', checked: S.selbstlauf, onchange: e => { S.selbstlauf = e.target.checked; if (S.selbstlauf) selbstlaufAb(); schreibe(); } }),
+      'Selbstlauf'));
+}
+
+/* ─── Kurs: „Wie letzte Stunde“ und „Offen vom letzten Mal“ — nur an einem anderen Tag als die letzte Stunde ─── */
+const TAG_KURZ = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
+const datumKurz = iso => { const [j, m, t] = iso.split('-').map(Number); return TAG_KURZ.format(new Date(j, m - 1, t)); };
+function letzteStunde() {
+  const P = plan(), k = S.kurse[kursSchluessel(P.kurs)];
+  // kein Angebot am selben Tag — und keins auf sich selbst: steht im Platz noch genau jene Stunde, ist alles schon da
+  return k && k.datum !== heute() && !(k.stunde === S.aktiv && P.gelaufen === k.datum) ? k : null;
+}
+function malKursAngebot() {
+  const k = letzteStunde();
+  if (!k) { $('e-kurs-angebot').replaceChildren(); return; }
+  const offen = k.offenErledigt ? [] : offeneVon(k);
+  $('e-kurs-angebot').replaceChildren(
+    h('button', { type: 'button', class: 'knopf kurs-weiter', onclick: wieLetzteStunde }, `Wie letzte Stunde · ${k.name} · ${datumKurz(k.datum)}`),
+    offen.length ? h('div', { class: 'offen-karte' },
+      h('p', {}, h('b', {}, 'Offen vom letzten Mal')),
+      h('ul', {}, offen.map(p => h('li', {}, icon(p.typ), h('span', {}, formName(p) + (stichpunkt(p.auftrag) ? ' – ' + stichpunkt(p.auftrag) : ''))))),
+      h('div', { class: 'offen-knoepfe' },
+        h('button', { type: 'button', class: 'knopf', onclick: offenEinfuegen }, 'Vorne einfügen'),
+        h('button', { type: 'button', class: 'knopf', onclick: offenVerwerfen }, 'Verwerfen'))) : null);
+}
+function wieLetzteStunde() {
+  const k = letzteStunde(), P = plan();
+  if (!k) return;
+  const hatInhalt = S.stunden[S.aktiv] && [P.thema, P.modul, P.ziel, P.abschluss.text, P.abschluss.ha, ...P.phasen.flatMap(p => [p.auftrag, p.fertig])].some(t => t.trim());
+  if (hatInhalt && !confirm(`${S.aktiv + 1}. Stunde mit der letzten Stunde der ${k.name} überschreiben?`)) return;
+  // alles außer der Hausaufgabe (die eigene bleibt); die offenen Phasen jener Stunde stecken schon im Ablauf,
+  // Übertragenes von noch früher kommt nach vorn
+  const neu = pruefePlan({ ...structuredClone(k.plan), kurs: P.kurs.trim() || k.name, gelaufen: '' });
+  neu.abschluss.ha = P.abschluss.ha;
+  neu.phasen = [...structuredClone(k.uebertrag), ...neu.phasen].slice(0, 12);
+  neu.phasen.forEach(p => { p.id = neueId(); p.offen = false; });
+  S.stunden[S.aktiv] = neu; entwurf = null;
+  if (S.lauf?.stunde === S.aktiv) S.lauf = null;
+  k.offenErledigt = true;
+  speichere(); malEinrichten();
+}
+function offenEinfuegen() {
+  const k = letzteStunde(), P = plan();
+  if (!k) return;
+  const neu = offeneVon(k).map(p => ({ ...structuredClone(p), id: neueId(), offen: false }));
+  if (neu.length + P.phasen.length > 12 && !confirm('Es passen höchstens 12 Phasen – die letzten fallen dabei weg. Trotzdem vorne einfügen?')) return;
+  P.phasen = [...neu, ...P.phasen].slice(0, 12);
+  k.offenErledigt = true;
+  speichere(); malEinrichten();
+}
+function offenVerwerfen() {
+  const k = letzteStunde();
+  if (!k) return;
+  k.offenErledigt = true;
+  schreibe(); malKursAngebot();
+}
+
+/* ─── Muster: nur Ablauf und Material (Zero 2026-09-30) — Tipp lädt, × löscht ─── */
+function malMuster() {
+  $('e-muster').replaceChildren(
+    ...S.muster.map((m, i) => h('span', { class: 'chip muster-chip' },
+      h('button', { type: 'button', class: 'muster-laden', onclick: () => musterLaden(i) }, m.name),
+      h('button', { type: 'button', 'aria-label': `Muster ${m.name} löschen`, onclick: () => musterLoeschen(i) }, icon('x')))),
+    // ohne Phasen gibt es nichts zu merken
+    h('button', { type: 'button', class: 'knopf muster-neu', disabled: !plan().phasen.length, onclick: musterSpeichern }, '+ Als Muster speichern'));
+}
+function musterSpeichern() {
+  const P = plan();
+  const name = prompt('Name für das Muster (z. B. Übungsstunde):', `${P.phasen.filter(p => p.typ !== 'pause').length} Phasen · ${halb(S.stunde)} min`);
+  const m = pruefeMuster({ name, einstieg: P.einstieg, phasen: P.phasen, abschlussMin: P.abschluss.min, material: P.material, eigenes: P.eigenes });
+  if (!m) return;
+  const alt = S.muster.findIndex(x => x.name.toLowerCase() === m.name.toLowerCase());
+  if (alt >= 0) { if (!confirm(`Muster „${m.name}“ ersetzen?`)) return; S.muster[alt] = m; }
+  else if (S.muster.length >= MUSTER_MAX) { alert(`Es gibt schon ${MUSTER_MAX} Muster. Lösche zuerst eines (×) oder ersetze eines mit gleichem Namen.`); return; }
+  else S.muster.push(m);
+  schreibe(); malMuster();
+}
+function musterLaden(i) {
+  const m = S.muster[i], P = plan();
+  if (!m) return;
+  if (P.phasen.some(p => p.auftrag.trim() || p.fertig.trim())
+    && !confirm(`Ablauf der ${S.aktiv + 1}. Stunde durch „${m.name}“ ersetzen? Die Aufträge der Phasen gehen dabei verloren.`)) return;
+  P.einstieg = m.einstieg;
+  P.phasen = m.phasen.map(x => neuePhase(x.typ, x.min, x.groesse));
+  P.abschluss.min = m.abschlussMin;
+  P.material = [...m.material]; P.eigenes = [...m.eigenes];
+  speichere(); malEinrichten();
+}
+/* ─── Weitergeben (2.2, Zero „Beides“): der Plan einer Stunde als Link — gepackt im Teil hinter „#“, den der Browser
+   nie an einen Server schickt — und als QR-Code (qrcode-generator, MIT, aus der Werft-Arena). Das Handy scannt ihn mit
+   der Kamera, öffnet die App und übernimmt den Plan in eine Stunde seiner Wahl. Nur Plandaten, keine Namen. ─── */
+const b64url = {
+  an: u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
+  ab: s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+};
+const strom = async (bytes, umform) => new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(umform)).arrayBuffer());
+async function planLink(p) {
+  const { gelaufen, ...rest } = structuredClone(p);
+  rest.phasen = rest.phasen.map(({ id, offen, ...x }) => x);
+  const gepackt = await strom(new TextEncoder().encode(JSON.stringify(rest)), new CompressionStream('deflate-raw'));
+  return location.origin + location.pathname + '#plan=' + b64url.an(gepackt);
+}
+async function planAusLink(hash) {
+  const m = /^#plan=([A-Za-z0-9_-]{1,12000})$/.exec(hash);   // Grenze: ein QR-Code trägt ohnehin weniger
+  if (!m) return null;
+  const roh = await strom(b64url.ab(m[1]), new DecompressionStream('deflate-raw'));
+  if (roh.length > 65536) return null;
+  const o = JSON.parse(new TextDecoder().decode(roh));
+  if (!o || typeof o !== 'object' || Array.isArray(o) || !Array.isArray(o.phasen)) return null;
+  // fremde Daten: nur was die Prüfung durchlässt; IDs, „offen“ und „gelaufen“ gehören dem Absender, nicht diesem Gerät
+  const p = pruefePlan(o);
+  p.phasen.forEach(x => { x.id = neueId(); x.offen = false; });
+  p.gelaufen = '';
+  return p;
+}
+async function weitergeben() {
+  const P = plan(), box = $('d-weiter-qr');
+  let link = '', svg = '', grund = '';
+  try { link = await planLink(P); } catch { grund = 'dieser Browser kann den Plan nicht verpacken.'; }
+  if (link) {
+    if (typeof qrcode !== 'function') grund = 'der QR-Baustein ist nicht geladen, bitte „Link teilen“.';
+    else try { const qr = qrcode(0, 'L'); qr.addData(link, 'Byte'); qr.make(); svg = qr.createSvgTag({ cellSize: 4, margin: 16, scalable: true }); }
+    catch { grund = 'zu lang für einen QR-Code, bitte „Link teilen“.'; }
+  }
+  $('d-weiter-text').textContent = `${S.aktiv + 1}. Stunde · ${fachAnzeige(P.fach)}${P.kurs.trim() ? ' · ' + P.kurs.trim() : ''}${P.thema.trim() ? ' · ' + P.thema.trim() : ''} — `
+    + (svg ? 'mit der Kamera des Handys scannen und dort übernehmen.' : grund);
+  if (svg) box.innerHTML = svg; else box.replaceChildren();
+  box.hidden = !svg;
+  box.dataset.link = link;
+  $('d-weiter-teilen').textContent = 'Link teilen';
+  $('d-weiter-teilen').disabled = !link;
+  $('d-weiter').showModal();
+}
+async function linkTeilen() {
+  const link = $('d-weiter-qr').dataset.link;
+  if (!link) return;
+  if (navigator.share) { try { await navigator.share({ title: 'Stundenverlauf', url: link }); } catch { /* abgebrochen */ } return; }
+  try { await navigator.clipboard.writeText(link); $('d-weiter-teilen').textContent = 'Link kopiert'; }
+  catch { $('d-weiter-teilen').textContent = 'Kopieren nicht möglich'; }
+}
+let eingang = null;
+async function importPruefen() {
+  if (!location.hash.startsWith('#plan=')) return;
+  if (buehneAn) zurEinrichtung();   // nie über der laufenden Bühne übernehmen (Fremdprüfung 2.2: Uhr blieb stehen)
+  let p = null;
+  try { p = await planAusLink(location.hash); } catch { p = null; }
+  history.replaceState(null, '', location.pathname + location.search);   // einmal übernehmen, nicht bei jedem Neuladen
+  if (!p) { alert('Dieser Link enthält keinen lesbaren Plan.'); return; }
+  eingang = p;
+  const frei = S.stunden.findIndex(x => !x);
+  $('d-import-stunde').replaceChildren(...S.stunden.map((x, i) => h('option', { value: String(i) },
+    `${i + 1}. Stunde · ${x ? fachAnzeige(x.fach) + (x.thema.trim() ? ' · ' + x.thema.trim() : '') + ' (wird ersetzt)' : 'frei'}`)));
+  $('d-import-stunde').value = String(frei >= 0 ? frei : S.aktiv);
+  $('d-import-text').textContent = `${fachAnzeige(p.fach)}${p.kurs.trim() ? ' · ' + p.kurs.trim() : ''}${p.thema.trim() ? ' · ' + p.thema.trim() : ''} · ${p.phasen.length} Phasen`;
+  $('d-import').showModal();
+}
+function importUebernehmen() {
+  const i = Number($('d-import-stunde').value);
+  if (!eingang || !(i >= 0 && i < STUNDEN)) return;
+  S.stunden[i] = eingang; eingang = null;
+  S.aktiv = i; entwurf = null;
+  if (S.lauf?.stunde === i) S.lauf = null;
+  $('d-import').close();
+  speichere(true); malEinrichten();
+}
+
+function musterLoeschen(i) {
+  const m = S.muster[i];
+  if (!m || !confirm(`Muster „${m.name}“ löschen?`)) return;
+  S.muster.splice(i, 1);
+  schreibe(); malMuster();
 }
 
 function malMaterial() {
@@ -345,9 +593,16 @@ function malPhasen() {
     if (p.typ === 'gruppe')
       werte.append(h('span', { class: 'pz-label' }, 'Gruppen zu'),
         stepper(p.groesse, { min: 3, max: 8, schritt: 1, einheit: '', label: 'Gruppengröße' }, v => { p.groesse = v; speichere(); }));
+    // nach der Stunde (heute gelaufen): was nicht geschafft wurde, wandert in die nächste Stunde des Kurses
+    if (!pause && P.gelaufen === heute())
+      werte.append(h('button', { type: 'button', class: 'offen-knopf', 'aria-pressed': String(p.offen),
+        onclick: () => { p.offen = !p.offen; malPhasen(); speichere(); } }, h('span', { class: 'kaestchen', 'aria-hidden': 'true' }, p.offen ? icon('fertig') : null), 'blieb offen'));
     return h('li', { class: 'phase-zeile' + (pause ? ' pause' : '') }, kopf, werte,
       pause ? null : auftragFeld(p.auftrag, { placeholder: 'Auftrag (optional) – z. B. Buch S. 42, Nr. 3–5', label: `Auftrag Arbeitsphase ${nr}`, max: 600, klasse: 'pz-auftrag' },
-        v => { p.auftrag = v; speichere(); }));
+        v => { p.auftrag = v; speichere(); }),
+      pause ? null : h('input', { type: 'text', class: 'pz-fertig', value: p.fertig, maxlength: '200', autocomplete: 'off',
+        placeholder: 'Fertig? Dann … (optional) – z. B. Knobelaufgabe S. 45', 'aria-label': `Fertig-Auftrag Arbeitsphase ${nr}`,
+        oninput: e => { p.fertig = e.target.value; speichere(); } }));
   }));
   malBudget();
 }
@@ -358,7 +613,7 @@ function schiebe(i, d) {
   malPhasen(); speichere();
 }
 function malPlus() {
-  const neu = typ => { plan().phasen.push({ id: neueId(), typ, min: typ === 'pause' ? 5 : 15, groesse: 4, auftrag: '' }); malPhasen(); speichere(); };
+  const neu = typ => { plan().phasen.push(neuePhase(typ, typ === 'pause' ? 5 : 15)); malPhasen(); speichere(); };
   $('e-plus').replaceChildren(...[...ARBEIT, 'pause'].map(t => h('button', { type: 'button', class: 'knopf', onclick: () => neu(t) }, '+ ' + FORM[t].kurz)));
 }
 function malRahmen() {
@@ -400,7 +655,7 @@ function malTag() {
     const b = h('button', { type: 'button', class: 'tag-knopf' + (i === S.aktiv ? ' an' : '') + (p ? '' : ' frei'),
       'aria-pressed': String(i === S.aktiv), onclick: () => waehleStunde(i) },
       h('span', { class: 'tag-nr' }, `${i + 1}.`),
-      h('span', { class: 'tag-text' }, h('b', {}, p ? fachAnzeige(p.fach) : 'frei'), p && p.thema.trim() ? h('span', {}, p.thema.trim()) : null),
+      h('span', { class: 'tag-text' }, h('b', {}, p ? fachAnzeige(p.fach) + (p.kurs.trim() ? ' · ' + p.kurs.trim() : '') : 'frei'), p && p.thema.trim() ? h('span', {}, p.thema.trim()) : null),
       laufFrisch() && S.lauf.stunde === i ? h('span', { class: 'tag-laeuft', title: 'läuft' }) : null);
     if (p) { const [hue, stufe] = FAECHER[p.fach]; b.style.setProperty('--hue', String(hue)); b.style.setProperty('--stufe', String(stufe)); }
     return b;
@@ -424,23 +679,27 @@ function malEinrichten() {
   setzeFarbe();
   const P = plan();
   $('e-fach').value = P.fach;
+  $('e-kurs').value = P.kurs;
   $('e-lk').value = S.lehrkraft;
   $('e-thema').value = P.thema;
   $('e-modul').value = P.modul;
-  malTag(); malStundenKopf(); malAnzeige(); malMaterial(); malRahmen(); malPhasen(); malPlus(); malStart(); malWachHinweis();
+  $('e-ziel').value = P.ziel;
+  malTag(); malStundenKopf(); malKursAngebot(); malAnzeige(); malMaterial(); malMuster(); malRahmen(); malPhasen(); malPlus(); malStart(); malWachHinweis();
 }
 
 function initEinrichten() {
   $('e-fach').replaceChildren(...FACH_LISTE.map(f => h('option', { value: f }, f)));
   $('e-fach').addEventListener('change', e => { plan().fach = e.target.value; speichere(); malEinrichten(); });
+  $('e-kurs').addEventListener('input', e => { plan().kurs = e.target.value; speichere(); malKursAngebot(); });
   $('e-lk').addEventListener('input', e => { S.lehrkraft = e.target.value; schreibe(); });
-  // Parallelklassen: ganze Stunde aus einer anderen übernehmen (Thema, Material, Ablauf, Aufträge)
+  // Parallelklassen: ganze Stunde aus einer anderen übernehmen (Thema, Material, Ablauf, Aufträge) — der Kurs bleibt der eigene
   $('e-kopie').addEventListener('change', e => {
     const q = S.stunden[Number(e.target.value)], n = S.aktiv + 1;
     e.target.value = '';
     if (!q || (S.stunden[S.aktiv] && !confirm(`${n}. Stunde mit diesem Plan überschreiben?`))) return;
     const kopie = pruefePlan(JSON.parse(JSON.stringify(q)));
-    kopie.phasen.forEach(p => { p.id = neueId(); });
+    kopie.kurs = plan().kurs; kopie.gelaufen = '';
+    kopie.phasen.forEach(p => { p.id = neueId(); p.offen = false; });
     S.stunden[S.aktiv] = kopie; entwurf = null;
     if (S.lauf?.stunde === S.aktiv) S.lauf = null;
     speichere(); malEinrichten();
@@ -453,8 +712,15 @@ function initEinrichten() {
   });
   $('e-thema').addEventListener('input', e => { plan().thema = e.target.value; speichere(); });
   $('e-modul').addEventListener('input', e => { plan().modul = e.target.value; speichere(); });
+  $('e-ziel').addEventListener('input', e => { plan().ziel = e.target.value; speichere(); });
   $('e-ab-text').addEventListener('input', e => { plan().abschluss.text = e.target.value; speichere(); });
   $('e-eigen-plus').addEventListener('click', eigenesHinzu);
+  $('e-weitergeben').addEventListener('click', weitergeben);
+  $('d-weiter-teilen').addEventListener('click', linkTeilen);
+  $('d-weiter-zu').addEventListener('click', () => { $('d-weiter').close(); $('d-weiter-teilen').textContent = 'Link teilen'; });
+  $('d-import-ja').addEventListener('click', importUebernehmen);
+  $('d-import-nein').addEventListener('click', () => { eingang = null; $('d-import').close(); });
+  addEventListener('hashchange', importPruefen);
   $('e-eigen').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); eigenesHinzu(); } });
   $('e-stunde').addEventListener('change', e => { S.stunde = Number(e.target.value); malBudget(); schreibe(); });
   $('e-reset').addEventListener('click', () => {
@@ -543,6 +809,12 @@ function malUhr() {
   if (!anzeige) return;
   const { u, scheibe, zahlEl, unter, knoepfe } = anzeige;
   const r = restVon(u), z = zustand(u);
+  // letzte Minute: „Danach“ wird zu „Gleich“ und tritt hervor
+  if (anzeige.danach) {
+    const bald = z === 'laeuft' && r <= 60e3;
+    anzeige.danach.classList.toggle('bald', bald);
+    anzeige.danach.querySelector('.danach-wort').textContent = bald ? 'Gleich:' : 'Danach:';
+  }
   scheibe.style.setProperty('--anteil', String(Math.max(0, Math.min(1, r / u.gesamt))));
   zahlEl.textContent = String(Math.max(0, Math.ceil(r / 60e3)));
   unter.textContent =
@@ -558,7 +830,8 @@ function malUhr() {
     z === 'bereit' ? [k('start', [icon('play'), 'Start'], true), minus, plus] :
     z === 'laeuft' ? [k('halt', [icon('halt'), 'Anhalten']), minus, plus] :
     z === 'halt' ? [k('weiter', [icon('play'), 'Weiter'], true), minus, plus, k('neu', [icon('neu')], false, 'Zurücksetzen')] :
-    [plus, k('neu', [icon('neu')], false, 'Zurücksetzen')]));
+    // hat der Selbstlauf schon weitergeschaltet, liefe „+ 1“ neben der nächsten Phase her — dann nur Zurücksetzen
+    [u.weiter ? null : plus, k('neu', [icon('neu')], false, 'Zurücksetzen')].filter(Boolean)));
 }
 
 function fensterInhalt(f) {
@@ -577,28 +850,51 @@ function fensterInhalt(f) {
   }
   if (f.art === 'heute') {
     const thema = P.thema.trim(), modul = P.modul.trim();
-    const zeile = (wann, ic, name, min) => h('li', {}, icon(ic),
-      h('span', { class: 'was' }, h('span', { class: 'wann' }, wann), name), h('span', { class: 'dauer' }, min ? min + ' min' : ''));
-    const zeilen = P.phasen.map((p, i) => zeile(i === 0 ? 'zuerst' : 'dann', p.typ, formName(p), p.min));
-    zeilen.push(zeile('zum Schluss', 'abschluss', 'Abschluss', P.abschluss.min));
+    // Stichpunkte (Zero 2026-09-30: „ganz kurz“, „ohne Mehraufwand“): die erste Zeile des Auftrags, gekürzt.
+    // Sobald eine Phase einen hat, ersetzen sie das „zuerst/dann“ — die Reihenfolge trägt die Liste selbst.
+    const stich = [...P.phasen.map(p => p.typ === 'pause' ? '' : stichpunkt(p.auftrag)), stichpunkt(P.abschluss.text)];
+    const mitStich = stich.some(Boolean);
+    const zeile = (wann, ic, name, min, s) => h('li', {}, icon(ic),
+      h('span', { class: 'was' }, mitStich ? null : h('span', { class: 'wann' }, wann), h('span', { class: 'name' }, name), s ? h('span', { class: 'stich' }, s) : null),
+      h('span', { class: 'dauer' }, min ? min + ' min' : ''));
+    const zeilen = P.phasen.map((p, i) => zeile(i === 0 ? 'zuerst' : 'dann', p.typ, formName(p), p.min, stich[i]));
+    zeilen.push(zeile('zum Schluss', 'abschluss', 'Abschluss', P.abschluss.min, stich.at(-1)));
+    const ziel = P.ziel.trim();
     return h('div', { class: 'f-heute' },
       h('div', {},
         h('p', { class: 'f-kicker' }, thema ? 'Heute ist Thema' : 'Heute'),
         h('h1', { class: 'f-titel' }, thema || modul || 'So läuft die Stunde'),
-        thema && modul ? h('p', { class: 'f-modul' }, icon('modul'), modul) : null),
+        thema && modul ? h('p', { class: 'f-modul' }, icon('modul'), modul) : null,
+        ziel ? h('p', { class: 'f-ziel' }, icon('ziel'), h('span', {}, h('b', {}, 'Ziel'), ziel)) : null),
       h('div', {},
         h('p', { class: 'f-kicker' }, 'So arbeitest du heute'),
         h('ol', { class: 'ablauf' + (zeilen.length > 6 ? ' dicht' : '') }, zeilen)));
   }
   if (f.art === 'phase') {
-    const p = f.p;
+    const p = f.p, stufe = FORM[p.typ].laut;
+    // die drei Fragen der Klasse: Was mache ich? (Titel, Auftrag) · Wie lange noch? (Scheibe) · Was kommt danach? (Zeile unten)
+    const naechstes = fensterListe[fensterListe.indexOf(f) + 1];
+    const danach = naechstes && naechstes.art === 'phase'
+      ? h('p', { class: 'danach' }, icon('danach'), h('span', { class: 'danach-wort' }, 'Danach:'), h('span', {}, `${formName(naechstes.p)} · ${naechstes.p.min} min`))
+      : naechstes ? h('p', { class: 'danach' }, icon('danach'), h('span', { class: 'danach-wort' }, 'Danach:'), h('span', {}, 'Abschluss')) : null;
+    // „Danach“ steht unter der Zeitscheibe — dort schaut die Klasse hin, und hochkant ist neben der Scheibe Platz
+    const block = uhrBlock(p.id, p.min);
+    if (danach) block.append(danach);
+    anzeige.danach = danach;
+    malUhr();
     return h('div', { class: 'f-phase' },
       h('div', {},
         h('p', { class: 'f-kicker' }, p.typ === 'pause' ? 'Zwischendurch' : `Arbeitsphase ${f.nr}`),
         h('div', { class: 'soz' }, icon(p.typ), h('h1', { class: 'f-titel' }, FORM[p.typ].name)),
-        h('p', { class: 'hinweis' }, FORM[p.typ].hinweis(p)),
-        p.auftrag.trim() ? auftragKasten('Auftrag', p.auftrag) : null),
-      uhrBlock(p.id, p.min));
+        h('div', { class: 'hinweis-zeile' },
+          h('p', { class: 'hinweis' }, FORM[p.typ].hinweis(p)),
+          stufe == null ? null : h('p', { class: 'laut', 'data-stufe': String(stufe), 'aria-label': 'Lautstärke: ' + LAUT[stufe] },
+            icon(stufe === 0 ? 'still' : 'laut'),
+            h('span', { class: 'balken', 'aria-hidden': 'true' }, [1, 2, 3].map(n => h('i', { class: n <= stufe ? 'an' : '' }))),
+            h('span', {}, LAUT[stufe]))),
+        p.auftrag.trim() ? auftragKasten('Auftrag', p.auftrag) : null,
+        p.fertig.trim() ? h('div', { class: 'fertig' }, h('b', {}, icon('fertig'), 'Fertig? Dann'), h('p', {}, p.fertig.trim())) : null),
+      block);
   }
   // Abschluss ohne Uhr (Zero 2026-09-30) — seine Minuten zählen nur für die Planung
   const ab = P.abschluss;
@@ -634,7 +930,7 @@ function zeigeFenster(i) {
   const malen = () => {
     const inhalt = fensterInhalt(fensterListe[aktuell]);
     // Reihenfolge des Erscheinens = Lesereihenfolge; der Titel in .soz kommt mit seinem Symbol
-    [...inhalt.querySelectorAll('.f-kicker, .f-titel, .f-unter, .f-abschnitt, .f-modul, .mat-kachel, .ablauf li, .soz, .hinweis, .auftrag, .uhr-block')]
+    [...inhalt.querySelectorAll('.f-kicker, .f-titel, .f-unter, .f-abschnitt, .f-modul, .f-ziel, .mat-kachel, .ablauf li, .soz, .hinweis, .laut, .auftrag, .fertig, .uhr-block')]
       .filter(e => !e.parentElement.closest('.soz'))
       .forEach((e, n) => { e.classList.add('stufe'); e.style.setProperty('--i', String(Math.min(n, 12))); });
     $('b-fenster').replaceChildren(inhalt);
@@ -652,11 +948,17 @@ function speichereLauf() { if (S.lauf) { S.lauf.index = aktuell; S.lauf.stand = 
 
 function starteBuehne(neu) {
   audioBereit();
+  // für „blieb offen“ und das Kurs-Gedächtnis; läuft der Plan an einem neuen Tag, gelten alte „offen“-Marken nicht mehr
+  const P = plan();
+  if (P.gelaufen !== heute()) P.phasen.forEach(p => { p.offen = false; });
+  P.gelaufen = heute();
   speichere();   // eine gestartete Stunde ist belegt, auch ohne Eintrag
+  kursMerken(S.aktiv, true);
+  schreibe();
   if (neu || !laufGueltig()) S.lauf = { stunde: S.aktiv, index: 0, uhren: {}, stand: Date.now() };
   fensterListe = bauFenster();
   aktuell = Math.min(S.lauf.index, fensterListe.length - 1);
-  $('b-fach').textContent = fachAnzeige();
+  $('b-fach').textContent = fachAnzeige() + (plan().kurs.trim() ? ' · ' + plan().kurs.trim() : '');
   $('b-lk').textContent = S.lehrkraft.trim() ? ' · ' + S.lehrkraft.trim() : '';
   $('einrichten').hidden = true;
   $('buehne').hidden = false;
@@ -678,22 +980,55 @@ function zurEinrichtung() {
   malEinrichten();
 }
 
+/* Selbstlauf (Zero 2026-09-30, ab dem Start der 1. Phase): ist eine gestartete Phase abgelaufen, startet die nächste —
+   mit Ende = voriges Ende + ihre Minuten, nicht ab „jetzt“. So stimmen Phase und Restzeit auch, wenn die Seite
+   eine Weile nicht lief (anderes Fenster, App-Wechsel). Angehaltene Uhren (ende = null) halten die Kette an.
+   Von jeder Uhr aus wird genau einmal weitergeschaltet (u.weiter) — ein späteres Zurücksetzen startet nichts neu.
+   Läuft hinter ihr schon eine Phase, die die Lehrkraft von Hand gestartet hat, bleibt die Kette stehen.
+   Gibt das Fenster zurück, das jetzt dran ist, oder -1, wenn sich nichts bewegt hat. */
+function selbstlauf() {
+  if (!S.selbstlauf) return -1;
+  const jetzt = Date.now();
+  let ziel = -1;
+  for (let i = 0; i < fensterListe.length - 1; i++) {
+    const f = fensterListe[i], u = f.art === 'phase' ? uhren()[f.id] : null;
+    if (!u || u.weiter || !u.gestartet || u.ende == null || jetzt < u.ende) continue;
+    u.weiter = true;
+    if (fensterListe.slice(i + 1).some(g => g.art === 'phase' && uhren()[g.id]?.gestartet)) continue;
+    const n = fensterListe[i + 1];
+    if (n.art === 'phase') { const nu = uhrFuer(n.id, n.p.min); nu.gestartet = true; nu.gemeldet = false; nu.ende = u.ende + nu.rest; }
+    ziel = i + 1;   // nächste Phase oder, nach der letzten, der Abschluss
+  }
+  return ziel;
+}
+/* Selbstlauf mitten in der Stunde einschalten: längst abgelaufene Uhren schalten nicht mehr weiter */
+function selbstlaufAb() {
+  if (!S.lauf) return;
+  for (const u of Object.values(S.lauf.uhren)) if (u.ende != null && Date.now() >= u.ende) u.weiter = true;
+}
+
 /* Takt: Uhrzeit, Zeitscheibe, Signal bei Zeitende — auch für eine Uhr, deren Fenster gerade nicht sichtbar ist */
 function takt() {
   if (!buehneAn) return;
   $('b-uhr').textContent = ZEIT.format(Date.now());
+  const weiter = selbstlauf();
+  // nur Uhren von Phasen, die es im Ablauf noch gibt — eine gelöschte Phase gibt kein Signal mehr
+  const gueltig = new Set(fensterListe.map(f => f.id));
   let neuUm = false;
   for (const [id, u] of Object.entries(uhren())) {
-    if (u.ende != null && !u.gemeldet && Date.now() >= u.ende) {
+    if (gueltig.has(id) && u.ende != null && !u.gemeldet && Date.now() >= u.ende) {
       u.gemeldet = true; neuUm = true;
-      gong();
       if (anzeige && anzeige.id === id) {
         anzeige.scheibe.classList.remove('klingt'); void anzeige.scheibe.offsetWidth; anzeige.scheibe.classList.add('klingt');
       }
     }
   }
+  // ein Signal je Takt, auch wenn beim Aufholen mehrere Phasen zugleich enden
+  if (neuUm) gong();
+  // nur vorwärts: wer vorausgeblättert hat (z. B. zum Abschluss), wird nicht zurückgeholt
+  if (weiter > aktuell) { zeigeFenster(weiter); return; }
   malUhr();
-  if (neuUm) { malVerlauf(); speichereLauf(); }
+  if (neuUm || weiter >= 0) { malVerlauf(); speichereLauf(); }
 }
 setInterval(takt, 1000);
 
@@ -789,12 +1124,16 @@ function initBuehne() {
 
 initEinrichten();
 initBuehne();
+importPruefen();   // mit #plan=… geöffnet (QR-Code vom iPad): Plan übernehmen
 
 /* PWA: offline über den Service Worker. Ein Update wird nur in der Einrichtung angeboten, nie mitten in der Stunde. */
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  // Nur melden, wenn schon eine Fassung lief: beim allerersten Besuch übernimmt der Worker die Seite (clients.claim)
+  // und wäre danach ebenfalls „Controller“ — das ist keine neue Version (2.2, am Bild des ersten Handy-Besuchs gesehen)
+  const warSchon = !!navigator.serviceWorker.controller;
   addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' }).then(reg => {
-      const melde = () => { $('e-neu').hidden = false; };
+      const melde = () => { if (warSchon) $('e-neu').hidden = false; };
       reg.addEventListener('updatefound', () => {
         const neu = reg.installing;
         neu?.addEventListener('statechange', () => { if (neu.state === 'activated' && navigator.serviceWorker.controller) melde(); });

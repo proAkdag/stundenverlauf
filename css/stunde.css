@@ -179,6 +179,71 @@
   .fuss { margin: 14px 2px 0; font-size: 13px; color: var(--leise); }
   .neu-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 10px 14px;
     border-radius: 12px; background: var(--fach-zart); border: 1.5px solid var(--fach); font-weight: 600; }
+
+  /* Kurs: „Wie letzte Stunde“ und „Offen vom letzten Mal“ (2.1) */
+  .kurs-angebot { display: grid; gap: 10px; margin-bottom: 12px; }
+  .kurs-angebot:empty { display: none; }
+  .kurs-weiter { width: 100%; justify-content: flex-start; white-space: normal; text-align: left; border-color: var(--fach); color: var(--fach); }
+  .offen-karte { padding: 12px 14px; border-radius: 12px; background: var(--fach-zart); border: 1.5px solid var(--fach); }
+  .offen-karte p { margin: 0 0 6px; }
+  .offen-karte ul { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+  .offen-karte li { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .offen-karte li svg { width: 20px; height: 20px; color: var(--fach); }
+  .offen-karte li span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .offen-knoepfe { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* Muster: Chips — Tipp auf den Namen lädt, × löscht (2.1) */
+  .muster { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .muster-chip { padding: 0 4px 0 0; }
+  /* .chip .muster-laden schlägt .chip button { width: 32px } — sonst verschwindet der Name unter dem × */
+  .chip .muster-laden { width: auto; height: auto; min-height: 40px; padding: 0 4px 0 6px; border-radius: 999px; font-size: 15px; font-weight: 600; color: inherit; }
+  .muster-neu { min-height: 40px; padding: 0 12px; font-size: 14px; }
+  .muster-neu:disabled { opacity: .45; }
+
+  /* je Phase: „Fertig? Dann …“ und nach der Stunde „blieb offen“ (2.1) */
+  /* Selektor schwerer als input[type="text"] { width: 100% } — sonst ragt das Feld um den Einzug hinaus */
+  input[type="text"].pz-fertig { margin-left: 42px; width: calc(100% - 42px); }
+  .offen-knopf { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; margin-left: auto; border-radius: 10px;
+    border: 1.5px solid var(--kante); background: var(--flaeche); font-size: 14px; font-weight: 600; color: var(--leise); }
+  .offen-knopf .kaestchen { width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid currentColor; display: grid; place-items: center; }
+  .offen-knopf .kaestchen svg { width: 16px; height: 16px; }
+  .offen-knopf[aria-pressed="true"] { border-color: var(--eng); color: var(--eng); background: color-mix(in oklch, var(--eng) 10%, var(--flaeche)); }
+
+  /* Weitergeben / Übernehmen (2.2): Dialoge; der QR-Code liegt immer auf Weiß (auch im dunklen Stil lesbar) */
+  .dialog { border: 0; border-radius: 16px; padding: 18px; width: min(420px, calc(100vw - 32px)); max-height: calc(100dvh - 32px);
+    background: var(--flaeche); color: var(--text); box-shadow: 0 10px 40px oklch(.2 .02 var(--hue) / .35); }
+  .dialog::backdrop { background: rgb(0 0 0 / .45); }
+  .dialog h2 { margin: 0 0 8px; font-size: 20px; }
+  .d-text { margin: 0 0 12px; font-size: 15px; color: var(--leise); }
+  /* der QR-Code so groß wie möglich: lange Pläne brauchen Version 30+, die Handykamera liest dann feine Module */
+  #d-weiter { width: min(640px, calc(100vw - 32px)); }
+  .qr { background: #fff; border-radius: 10px; padding: 6px; width: min(100%, calc(100dvh - 230px)); margin-inline: auto; }
+  .qr svg { display: block; width: 100%; height: auto; }
+  .d-knoepfe { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .knopf.haupt { background: var(--fach); border-color: var(--fach); color: var(--auf-fach); }
+  .stunde-werkzeug { flex-wrap: wrap; }
+  /* schwerer als select { width: 100% } — sonst nimmt das Auswahlfeld die ganze Zeile und die Knöpfe rutschen immer darunter */
+  .stunde-werkzeug select { flex: 1 1 12rem; width: auto; }
+
+  /* ─ Handy (2.2, Zero 2026-09-30 „optimiere es auch für das smartphone“): Wurzel der Mindestbreite war die
+     Phasen-Kopfzeile (Nummer + vier Sozialformen + drei Knöpfe, gemessen 510 px bei 412). Sie bricht jetzt um,
+     Einzüge und Ränder werden schmaler. ─ */
+  @media (max-width: 560px) {
+    #einrichten { padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right)); }
+    .e-kopf h1 { font-size: 26px; }
+    .tag { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .karte { padding: 12px; }
+    .phase-zeile { padding: 10px; grid-template-columns: minmax(0, 1fr); }
+    .pz-kopf { flex-wrap: wrap; }
+    .pz-kopf .segment { flex: 1 1 220px; }
+    .segment span { padding: 0 5px; font-size: 14px; }
+    .pz-aktionen { margin-left: auto; }
+    .pz-werte { padding-left: 0; }
+    .pz-auftrag { margin-left: 0; }
+    input[type="text"].pz-fertig { margin-left: 0; width: 100%; }
+    .rahmen { padding: 8px 10px; }
+    .offen-knopf { margin-left: 0; }
+  }
 }
 
 /* ═══ Bühne · die Fenster für die Klasse ═══ */
@@ -241,6 +306,8 @@
     padding: 1.3vmin 2.4vmin; background: var(--flaeche); border: 1.5px solid var(--kante); border-radius: 2vmin; font-size: 3.3vmin; font-weight: 650; line-height: 1.15; }
   .ablauf .was { display: grid; min-width: 0; overflow-wrap: break-word; hyphens: auto; }
   .ablauf .wann { font-size: 2.1vmin; font-weight: 600; color: var(--leise); }
+  /* Stichpunkt je Phase (2.1): eine Zeile, zu lang → „…“ */
+  .ablauf .stich { min-width: 0; font-size: 3vmin; font-weight: 600; color: var(--leise); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ablauf svg { width: 5.6vmin; height: 5.6vmin; color: var(--fach); }
   .ablauf .dauer { font-variant-numeric: tabular-nums; font-weight: 750; color: var(--fach); white-space: nowrap; }
   /* ab 7 Zeilen: eine Zeile je Phase, „dann“ entfällt — die Reihenfolge trägt die Liste selbst */
@@ -248,12 +315,43 @@
   .ablauf.dicht li { padding-block: .7vmin; font-size: 2.7vmin; }
   .ablauf.dicht .wann { display: none; }
   .ablauf.dicht svg { width: 4.2vmin; height: 4.2vmin; }
+  /* dicht: Stichpunkt in derselben Zeile hinter dem Namen */
+  .ablauf.dicht .was { display: flex; align-items: baseline; gap: 1.6vmin; }
+  .ablauf.dicht .name { flex: none; }
+  .ablauf.dicht .stich { font-size: 2.3vmin; }
 
   .f-phase { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7vmin; align-items: center; }
   .f-phase.ohne-uhr { grid-template-columns: minmax(0, 1fr); }
   .soz { display: flex; align-items: center; gap: 3vmin; }
   .soz svg { width: 12vmin; height: 12vmin; color: var(--fach); }
   .hinweis { margin: 3vmin 0 0; font-size: 3.8vmin; line-height: 1.3; color: var(--leise); font-weight: 500; }
+
+  /* Schülerblick (2.1): Lautstärke als Zeichen neben dem Hinweis, „Fertig? Dann …“, „Danach:“, Ziel der Stunde */
+  .hinweis-zeile { display: flex; flex-wrap: wrap; align-items: center; gap: 1.4vmin 3vmin; margin-top: 3vmin; }
+  .hinweis-zeile .hinweis { margin: 0; }
+  .laut { display: inline-flex; align-items: center; gap: 1.2vmin; margin: 0; padding: .9vmin 2.2vmin .9vmin 1.6vmin; border-radius: 999px;
+    background: var(--fach-zart); font-size: 3.2vmin; font-weight: 700; line-height: 1.1; white-space: nowrap; }
+  .laut svg { width: 4.2vmin; height: 4.2vmin; color: var(--fach); }
+  .balken { display: inline-flex; align-items: flex-end; gap: .5vmin; height: 3.2vmin; }
+  .balken i { width: 1vmin; border-radius: .3vmin; background: color-mix(in oklch, var(--fach) 22%, transparent); }
+  .balken i:nth-child(1) { height: 40%; }
+  .balken i:nth-child(2) { height: 70%; }
+  .balken i:nth-child(3) { height: 100%; }
+  .balken i.an { background: var(--fach); }
+  .fertig { margin-top: 2.4vmin; padding: 1.8vmin 2.8vmin; border: 1.5px dashed var(--kante); border-radius: 1.6vmin; font-size: 3.2vmin; line-height: 1.28; font-weight: 600; overflow-wrap: anywhere; }
+  .fertig b { display: flex; align-items: center; gap: .8vmin; font-size: 2.2vmin; letter-spacing: .09em; text-transform: uppercase; color: var(--fach); }
+  .fertig b svg { width: 2.8vmin; height: 2.8vmin; }
+  .fertig p { margin: .5vmin 0 0; }
+  .danach { display: flex; align-items: center; flex-wrap: wrap; gap: .6vmin 1.4vmin; margin: 3vmin 0 0; font-size: 3.4vmin; font-weight: 650; color: var(--leise); }
+  .danach svg { width: 4vmin; height: 4vmin; color: var(--fach); }
+  .danach-wort { color: var(--fach); font-weight: 750; }
+  .danach.bald { color: var(--text); }
+  .uhr-block .danach { margin: 0; justify-content: center; text-align: center; }
+  .danach.bald svg { animation: stupsen 1.2s ease-in-out infinite; }
+  @keyframes stupsen { 50% { transform: translateX(.8vmin); } }
+  .f-ziel { display: flex; align-items: flex-start; gap: 1.8vmin; margin: 3.4vmin 0 0; font-size: 3.4vmin; line-height: 1.25; font-weight: 600; }
+  .f-ziel svg { width: 4.6vmin; height: 4.6vmin; color: var(--fach); }
+  .f-ziel b { display: block; font-size: 2.2vmin; letter-spacing: .09em; text-transform: uppercase; color: var(--fach); }
   .auftrag { margin-top: 4vmin; padding: 2.6vmin 3.2vmin; background: var(--flaeche); border: 1.5px solid var(--kante); border-left: 1.2vmin solid var(--fach);
     border-radius: 1.6vmin; font-size: 4vmin; line-height: 1.28; font-weight: 600; overflow-wrap: anywhere; }
   .auftrag b { display: block; margin-bottom: .8vmin; font-size: 2.2vmin; letter-spacing: .09em; text-transform: uppercase; color: var(--fach); }
@@ -282,14 +380,96 @@
   .u-knopf.haupt { background: var(--fach); border-color: var(--fach); color: var(--auf-fach); padding-inline: 3vmin; font-size: 2.8vmin; }
 
   @media (orientation: portrait) {
-    .f-heute, .f-phase { grid-template-columns: minmax(0, 1fr); gap: 4vmin; }
+    .f-heute, .f-phase { grid-template-columns: minmax(0, 1fr); gap: 3vmin; }
+    /* hochkant mit langem Auftrag: etwas enger, damit alles zwischen Kopf und Leiste passt (2.1) */
+    .auftrag { margin-top: 3vmin; }
     .scheibe { width: 38vmin; }
     .scheibe::before { inset: 5vmin; }
     /* hochkant: Scheibe links, „bis … Uhr“ und Knöpfe rechts daneben — spart die Höhe von zwei Zeilen */
-    .uhr-block { grid-template-columns: auto auto; column-gap: 4vmin; align-items: center; justify-content: start; }
-    .uhr-block .scheibe { grid-row: span 2; }
+    .uhr-block { grid-template-columns: auto auto; grid-template-rows: 1fr auto 1fr; column-gap: 4vmin; align-items: center; justify-content: start; }
+    .uhr-block .scheibe { grid-row: span 3; }
     .uhr-unter { align-self: end; }
     .uhr-knoepfe { align-self: start; justify-content: start; }
+    .uhr-block .danach { align-self: start; justify-content: start; text-align: left; }
+  }
+
+  /* Handy quer (2.2): wenig Höhe — Kopf, Leiste, Ränder und die dichte Liste flacher.
+     Gemessen bei 915 × 412: Kopf + Leiste nahmen 117 px, dem Inhalt blieben 295 px. */
+  @media (orientation: landscape) and (max-height: 520px) {
+    .b-kopf { padding-block: max(.6vmin, env(safe-area-inset-top)) .6vmin; }
+    .b-knopf { min-width: 40px; min-height: 40px; }
+    .b-leiste { padding-block: .6vmin max(.8vmin, env(safe-area-inset-bottom)); }
+    .b-pfeil { min-width: 40px; min-height: 40px; }
+    .b-schritt button { min-height: 36px; padding-block: .4vmin; }
+    .b-fenster { padding: 2.4vmin 5vmin; }
+    .ablauf { gap: 1.2vmin; }
+    .ablauf li { padding-block: .9vmin; }
+    .ablauf.dicht { gap: .5vmin; }
+    .ablauf.dicht li { padding-block: .35vmin; }
+    .f-modul, .f-ziel { margin-top: 2vmin; }
+    .hinweis-zeile { margin-top: 2vmin; }
+    .auftrag { margin-top: 2.4vmin; }
+    .fertig { margin-top: 1.6vmin; }
+    .uhr-block { gap: 1.2vmin; }
+  }
+
+  /* Kopf und Leiste im schmalen Fenster: nach der Fensterbreite statt nach der kürzeren Kante (2.1) */
+  @media (max-width: 640px) {
+    .b-fach, .b-uhr { font-size: 4.2vw; }
+    .b-schritt button { font-size: 2.8vw; }
+    .b-schritt button svg { width: 3.6vw; height: 3.6vw; }
+  }
+
+  /* ─ Schmale Bühne (2.1): im geteilten iPad-Fenster neben der Kladde. Der Beamer spiegelt das ganze iPad, die Bühne
+     bekommt also nur einen Teil des Bildes. Die Maße folgen darum der Breite des Fensters (cqi), nicht der kürzeren
+     Bildschirmkante, damit die Schrift im Teilbild so groß wie möglich bleibt. ─ */
+  .b-fenster { container-type: inline-size; }
+  @container (max-width: 620px) {
+    .f-heute, .f-phase { grid-template-columns: minmax(0, 1fr); gap: 5cqi; }
+    .f-kicker { font-size: 3.6cqi; }
+    .f-titel { font-size: 11.5cqi; }
+    .f-unter { font-size: 6cqi; }
+    .f-abschnitt { margin: 7cqi 0 3cqi; font-size: 5cqi; }
+    .mat-reihe { gap: 3cqi; }
+    .mat-kachel { min-width: 27cqi; font-size: 3.8cqi; }
+    .mat-kachel svg { width: 12cqi; height: 12cqi; }
+    .soz svg { width: 14cqi; height: 14cqi; }
+    .hinweis-zeile { margin-top: 4cqi; }
+    .hinweis { font-size: 5.2cqi; }
+    .laut { font-size: 4.4cqi; }
+    .laut svg { width: 5.6cqi; height: 5.6cqi; }
+    .balken { height: 4.4cqi; }
+    .balken i { width: 1.4cqi; }
+    .auftrag { margin-top: 5cqi; font-size: 5.6cqi; }
+    .auftrag.lang { font-size: 4.8cqi; }
+    .auftrag.sehr-lang { font-size: 4.2cqi; }
+    .auftrag b, .fertig b, .f-ziel b { font-size: 3.2cqi; }
+    .fertig { font-size: 4.6cqi; }
+    .danach, .f-ziel, .f-modul { font-size: 4.8cqi; }
+    .danach svg, .f-modul svg { width: 5.6cqi; height: 5.6cqi; }
+    .ablauf li { grid-template-columns: 7cqi minmax(0, 1fr) auto; font-size: 4.6cqi; }
+    .ablauf .wann { font-size: 3cqi; }
+    .ablauf .stich { font-size: 3.6cqi; }
+    .ablauf svg { width: 7cqi; height: 7cqi; }
+    /* die dichte Liste (ab 7 Zeilen) ist spezifischer als die Regeln oben — darum hier eigens */
+    .ablauf.dicht { gap: 1.2cqi; }
+    .ablauf.dicht li { padding-block: .8cqi; font-size: 3.3cqi; }
+    .ablauf.dicht .stich { font-size: 2.8cqi; }
+    .ablauf.dicht svg { width: 5cqi; height: 5cqi; }
+    .uhr-block { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 1fr auto 1fr; column-gap: 5cqi; align-items: center; justify-content: start; }
+    .uhr-block .scheibe { grid-row: span 3; }
+    .uhr-block .danach { align-self: start; justify-content: start; text-align: left; }
+    .f-heute { gap: 4cqi; }
+    .ablauf { gap: 1.6cqi; }
+    .ablauf li { padding-block: 1.1cqi; }
+    .scheibe { width: 42cqi; }
+    .scheibe::before { inset: 5.5cqi; }
+    .zahl b { font-size: 13cqi; }
+    .zahl span { font-size: 4cqi; }
+    .uhr-unter { align-self: end; font-size: 4.6cqi; }
+    .uhr-knoepfe { align-self: start; justify-content: start; }
+    .u-knopf { font-size: 3.6cqi; }
+    .u-knopf.haupt { font-size: 4cqi; }
   }
 }
 

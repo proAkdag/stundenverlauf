@@ -25,8 +25,10 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <!-- iOS macht aus Ziffernfolgen („S. 42, Nr. 3“) sonst Telefon-Links -->
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-<link rel="stylesheet" href="./css/stunde.css?v=2.0.0">
-<script type="module" src="./js/stunde.mjs?v=2.0.0"></script>
+<link rel="stylesheet" href="./css/stunde.css?v=2.2.0">
+<!-- QR-Code für „Weitergeben“: qrcode-generator (Kazuhiko Arase, MIT), übernommen aus der Werft-Arena (vendor/qrcode.js) -->
+<script src="./js/vendor/qrcode.js?v=2.2.0" defer></script>
+<script type="module" src="./js/stunde.mjs?v=2.2.0"></script>
 </head>
 <body>
 
@@ -51,9 +53,12 @@
       <section class="karte" aria-labelledby="h-fach">
         <h2 id="h-fach">1. Stunde</h2>
         <label class="feld"><span>Fach</span><select id="e-fach"></select></label>
+        <label class="feld"><span>Kurs</span><input type="text" id="e-kurs" autocomplete="off" maxlength="20" placeholder="z. B. 7b"></label>
+        <div class="kurs-angebot" id="e-kurs-angebot"></div>
         <div class="stunde-werkzeug">
           <select id="e-kopie" aria-label="Plan aus einer anderen Stunde übernehmen"></select>
           <button type="button" class="knopf" id="e-leeren">Leeren</button>
+          <button type="button" class="knopf" id="e-weitergeben">Weitergeben</button>
         </div>
         <label class="feld"><span>Lehrkraft (gilt für alle Stunden)</span><input type="text" id="e-lk" autocomplete="off" maxlength="40"></label>
       </section>
@@ -62,6 +67,7 @@
         <h2 id="h-heute">Heute</h2>
         <label class="feld"><span>Thema</span><input type="text" id="e-thema" autocomplete="off" maxlength="120" placeholder="z. B. Brüche vergleichen"></label>
         <label class="feld"><span>Modul</span><input type="text" id="e-modul" autocomplete="off" maxlength="120" placeholder="z. B. Modul 3 in Moodle"></label>
+        <label class="feld"><span>Ziel (optional)</span><input type="text" id="e-ziel" autocomplete="off" maxlength="160" placeholder="z. B. Am Ende kannst du Brüche der Größe nach ordnen."></label>
       </section>
 
       <section class="karte" aria-labelledby="h-material">
@@ -78,6 +84,7 @@
     <div>
       <section class="karte" aria-labelledby="h-ablauf">
         <h2 id="h-ablauf">Ablauf</h2>
+        <div class="muster" id="e-muster" aria-label="Muster"></div>
         <div class="rahmen" id="e-einstieg"></div>
         <ol class="phasen" id="e-phasen"></ol>
         <div class="plus-reihe" id="e-plus"></div>
@@ -123,6 +130,26 @@
     <button type="button" class="b-pfeil" id="b-weiter" aria-label="Weiter"></button>
   </nav>
 </section>
+
+<!-- Weitergeben (2.2): Plan einer Stunde als Link und QR-Code — das Handy scannt ihn und übernimmt den Plan -->
+<dialog id="d-weiter" class="dialog" aria-labelledby="d-weiter-titel">
+  <h2 id="d-weiter-titel">Plan weitergeben</h2>
+  <p class="d-text" id="d-weiter-text"></p>
+  <div class="qr" id="d-weiter-qr"></div>
+  <div class="d-knoepfe">
+    <button type="button" class="knopf" id="d-weiter-teilen">Link teilen</button>
+    <button type="button" class="knopf" id="d-weiter-zu">Schließen</button>
+  </div>
+</dialog>
+<dialog id="d-import" class="dialog" aria-labelledby="d-import-titel">
+  <h2 id="d-import-titel">Plan übernehmen</h2>
+  <p class="d-text" id="d-import-text"></p>
+  <label class="feld"><span>In welche Stunde?</span><select id="d-import-stunde"></select></label>
+  <div class="d-knoepfe">
+    <button type="button" class="knopf haupt" id="d-import-ja">Übernehmen</button>
+    <button type="button" class="knopf" id="d-import-nein">Verwerfen</button>
+  </div>
+</dialog>
 
 <noscript>Diese Seite braucht JavaScript.</noscript>
 </body>

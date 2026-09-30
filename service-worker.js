@@ -2,7 +2,7 @@
 // CACHE_NAME ist versioniert: = APP_VERSION (js/stunde.mjs) = ?v= (index.html); die Probe prüft die Gleichheit.
 // Neuer CACHE_NAME → frischer Cache, addAll holt alles neu; fehlt eine Datei, bricht der Install ab (alter Stand bleibt).
 
-const CACHE_NAME = 'stunde-v2.0.0';
+const CACHE_NAME = 'stunde-v2.2.0';
 const CACHE_FAMILIE = CACHE_NAME.slice(0, CACHE_NAME.lastIndexOf('-v') + 2);
 
 const ASSETS = [
@@ -12,8 +12,9 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './apple-touch-icon.png',
-  './css/stunde.css?v=2.0.0',
-  './js/stunde.mjs?v=2.0.0',
+  './css/stunde.css?v=2.2.0',
+  './js/stunde.mjs?v=2.2.0',
+  './js/vendor/qrcode.js?v=2.2.0',
 ];
 
 self.addEventListener('install', (event) => {
@@ -48,8 +49,9 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-  // Dateien: aus dem Cache (sie tragen ?v=), sonst Netz
+  // Dateien: aus dem eigenen Cache mit genau diesem ?v=, sonst Netz. Bis 2.0.0 stand hier ignoreSearch über alle
+  // Caches — dann bekam eine neue Seite nach dem Update beim ersten Öffnen das alte Skript (Fremdprüfung 2026-09-30).
   event.respondWith(
-    caches.match(event.request, { ignoreSearch: true }).then((treffer) => treffer || fetch(event.request))
+    caches.open(CACHE_NAME).then((c) => c.match(event.request)).then((treffer) => treffer || fetch(event.request))
   );
 });
