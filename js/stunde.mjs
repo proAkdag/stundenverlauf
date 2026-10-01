@@ -1,6 +1,6 @@
 // Stundenverlauf · App (aus stundenverlauf_v1.html aufgeteilt am 2026-09-30, seitdem hier die Quelle)
 // Version: APP_VERSION = CACHE_NAME im Service Worker = ?v= in index.html — beim Ändern alle drei heben.
-export const APP_VERSION = '2.3.1';
+export const APP_VERSION = '2.3.2';
 
 /* ─── Fachfarben: [Farbton, Helligkeitsstufe] je Fach, übernommen aus der Kladde
    (Klausurkorrektur/kladde/app/logic/fachfarben.mjs, FAECHER, Stand v1.10.1). ─── */
@@ -113,8 +113,10 @@ function h(tag, attrs = {}, ...kinder) {
                  pid (2.3) = Kennung der Stunde über Geräte hinweg: ein Plan, der mit derselben pid zurückkommt, aktualisiert
                  genau diese Stunde, auch während sie läuft (Uhren hängen an den Phasen-IDs, die mitreisen)
      muster[]    {name, einstieg, phasen[{typ, min, groesse}], abschlussMin, material[], eigenes[]} — nur Ablauf und Material (Zero)
-     kurse{}     Schlüssel = Kursname klein → {name, datum, stunde, plan, uebertrag[Phase], offenErledigt} — zuletzt gestartete
-                 Stunde je Kurs; ein Objekt ohne Prototyp, damit Kursnamen wie „constructor“ nichts Geerbtes treffen
+     kurse{}     Schlüssel = „Fach|Kursname klein“ → {name, datum, stunde, plan, uebertrag[Phase], offenErledigt} — zuletzt
+                 gestartete Stunde je Kurs und Fach (2.3.2: „7b“ in Mathe und Physik sind zwei Kurse; ein Eintrag mit dem
+                 alten Schlüssel nur aus dem Kursnamen zieht beim Laden unter das Fach seines Plans); ein Objekt ohne
+                 Prototyp, damit Kursnamen wie „constructor“ nichts Geerbtes treffen
      selbstlauf  Phasen wechseln nach Ablauf der Zeit von selbst (Schalter, aus)
      kamera      'environment' | 'user' — zuletzt gewählte Kamera des Scanners (2.3)
    Jedes Feld läuft beim Laden durch seine Prüfung — ein Feld, das dort fehlt, geht beim Neuladen verloren. ─── */
@@ -128,7 +130,9 @@ const neueId =() => Math.random().toString(36).slice(2, 10);
 const zahl = (v, min, max, std) => { const n = Number(v); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : std; };
 const text = (v, max = 200) => typeof v === 'string' ? v.slice(0, max) : '';
 const heute = () => { const d = new Date(Date.now()); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-const kursSchluessel = k => (k || '').trim().toLowerCase();
+const kursName = k => (k || '').trim().toLowerCase();
+// Fach + Kurs (2.3.2): ein Fachname enthält kein „|“, darum bleibt der Schlüssel eindeutig; leerer Kurs → kein Schlüssel
+const kursSchluessel = (kurs, fach) => { const k = kursName(kurs); return k ? fach + '|' + k : ''; };
 // nur eigene Schlüssel: „constructor“ oder „toString“ aus einem fremden Link sind kein Fach und keine Sozialform (Fremdprüfung 2.2)
 const hat = (o, k) => typeof k === 'string' && Object.hasOwn(o, k);
 // IDs reisen seit 2.3 mit (Link, QR): nur Kleinbuchstaben und Ziffern, und nie der Name eines festen Fensters
@@ -210,7 +214,11 @@ function ladeSpeicher() {
   });
   if (Array.isArray(roh.muster)) s.muster = roh.muster.map(pruefeMuster).filter(Boolean).slice(0, MUSTER_MAX);
   if (roh.kurse && typeof roh.kurse === 'object')
-    for (const [schl, k] of Object.entries(roh.kurse)) { const g = pruefeKurs(k); if (g && schl === kursSchluessel(g.name)) s.kurse[schl] = g; }
+    for (const [schl, k] of Object.entries(roh.kurse)) {
+      const g = pruefeKurs(k), neu = g && kursSchluessel(g.name, g.plan.fach);
+      // neuer Schlüssel oder alter (nur Kursname, vor 2.3.2); treffen zwei auf dasselbe Fach, gilt die spätere Stunde
+      if (g && (schl === neu || schl === kursName(g.name)) && !(s.kurse[neu]?.datum > g.datum)) s.kurse[neu] = g;
+    }
   const l = roh.lauf;
   if (l && Number.isInteger(l.stunde) && s.stunden[l.stunde] && Number.isFinite(l.stand) && Date.now() - l.stand < LAUF_GUELTIG_MS && l.uhren && typeof l.uhren === 'object') {
     const uhren = Object.create(null);   // Schlüssel sind Phasen-IDs — ohne Prototyp trifft keine ID etwas Geerbtes
@@ -262,7 +270,7 @@ const offeneVon = k => [...k.uebertrag, ...k.plan.phasen.filter(p => p.offen)];
 function kursMerken(i = S.aktiv, start = false) {
   const p = S.stunden[i];
   if (!p || p.gelaufen !== heute()) return;
-  const schl = kursSchluessel(p.kurs);
+  const schl = kursSchluessel(p.kurs, p.fach);
   const eigene = Object.keys(S.kurse).filter(k => S.kurse[k].datum === p.gelaufen && S.kurse[k].stunde === i);
   if (!start && !eigene.length) return;
   if (!schl) return;   // leeres Feld (mitten im Umbenennen): Eintrag bleibt unter seinem Namen stehen
@@ -409,7 +417,7 @@ function malAnzeige() {
 const TAG_KURZ = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' });
 const datumKurz = iso => { const [j, m, t] = iso.split('-').map(Number); return TAG_KURZ.format(new Date(j, m - 1, t)); };
 function letzteStunde() {
-  const P = plan(), k = S.kurse[kursSchluessel(P.kurs)];
+  const P = plan(), k = S.kurse[kursSchluessel(P.kurs, P.fach)];
   // kein Angebot am selben Tag — und keins auf sich selbst: steht im Platz noch genau jene Stunde, ist alles schon da
   return k && k.datum !== heute() && !(k.stunde === S.aktiv && P.gelaufen === k.datum) ? k : null;
 }
