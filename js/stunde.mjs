@@ -1,6 +1,6 @@
 // Stundenverlauf · App (aus stundenverlauf_v1.html aufgeteilt am 2026-09-30, seitdem hier die Quelle)
 // Version: APP_VERSION = CACHE_NAME im Service Worker = ?v= in index.html — beim Ändern alle drei heben.
-export const APP_VERSION = '2.3.2';
+export const APP_VERSION = '2.3.3';
 
 /* ─── Fachfarben: [Farbton, Helligkeitsstufe] je Fach, übernommen aus der Kladde
    (Klausurkorrektur/kladde/app/logic/fachfarben.mjs, FAECHER, Stand v1.10.1). ─── */
@@ -1352,19 +1352,33 @@ initBuehne();
 if (pidNeu) schreibe(true);   // Stand vor 2.3: die neuen Kennungen gleich festhalten
 importPruefen();   // mit #plan=… geöffnet (Kamera-App, geteilter Link): Plan übernehmen oder Stunde aktualisieren
 
-/* PWA: offline über den Service Worker. Ein Update wird nur in der Einrichtung angeboten, nie mitten in der Stunde. */
+/* PWA: offline über den Service Worker. Die App öffnet immer aus dem Speicher; nach einem Update wird im Hintergrund gesucht.
+   Eine neue Fassung wird erst nach „Aktualisieren“ benutzt (Zero 20.10.) und nur in der Einrichtung angeboten, nie mitten in der Stunde. */
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  // Nur melden, wenn schon eine Fassung lief: beim allerersten Besuch übernimmt der Worker die Seite (clients.claim)
-  // und wäre danach ebenfalls „Controller“ — das ist keine neue Version (2.2, am Bild des ersten Handy-Besuchs gesehen)
-  const warSchon = !!navigator.serviceWorker.controller;
+  let reg = null;
+  // Gefragt wird der neueste fertig geladene Worker. Ein wartender kennt die neue Fassung schon; wann der Browser ihn aktiv
+  // schaltet, ist egal (gemessen 20.10. in Chromium: bis ~30 s), weil auch der alte Worker nach der Freigabe aus dem neuen Cache liefert.
+  const frage = (typ) => {
+    const sw = reg && (reg.waiting || reg.active);
+    if (!sw) return Promise.resolve(null);
+    return new Promise((ok) => {
+      const kanal = new MessageChannel(), t = setTimeout(() => ok(null), 3000);
+      kanal.port1.onmessage = (e) => { clearTimeout(t); ok(e.data); };
+      sw.postMessage({ typ }, [kanal.port2]);
+    });
+  };
+  const pruefe = async () => { const s = await frage('status'); $('e-neu').hidden = !(s && s.frei && s.neu && s.frei !== s.neu); };
   addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' }).then(reg => {
-      const melde = () => { if (warSchon) $('e-neu').hidden = false; };
-      reg.addEventListener('updatefound', () => {
-        const neu = reg.installing;
-        neu?.addEventListener('statechange', () => { if (neu.state === 'activated' && navigator.serviceWorker.controller) melde(); });
-      });
+    navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' }).then(r => {
+      reg = r;
+      const beobachte = (neu) => neu?.addEventListener('statechange', () => { if (neu.state === 'installed' || neu.state === 'activated') pruefe(); });
+      beobachte(r.installing);   // die Prüfung beim Öffnen kann schon vor register() begonnen haben
+      r.addEventListener('updatefound', () => beobachte(r.installing));
+      navigator.serviceWorker.addEventListener('controllerchange', pruefe);
+      pruefe();
+      r.update().catch(() => {});
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') r.update().then(pruefe, () => {}); });
     }).catch(() => {});
   });
-  $('e-neu-laden').addEventListener('click', () => location.reload());
+  $('e-neu-laden').addEventListener('click', async () => { const r = await frage('freigeben'); if (r && r.frei) location.reload(); });
 }
