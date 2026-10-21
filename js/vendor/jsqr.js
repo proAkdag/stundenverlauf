@@ -1,4 +1,5 @@
-/* jsQR — Apache-2.0 — inline fuer Self-Containment */
+/* jsQR 1.4.0 (https://github.com/cozmo/jsQR, Cosmo Wolfe, Jefff Nelson) — Apache License 2.0, voller Text in LICENSE-jsqr.txt daneben.
+   Unverändert übernommen, nur dieser Kopf ergänzt. */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory();

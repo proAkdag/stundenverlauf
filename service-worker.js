@@ -2,7 +2,7 @@
 // CACHE_NAME ist versioniert: = APP_VERSION (js/stunde.mjs) = ?v= (index.html); die Probe prüft die Gleichheit.
 // Neuer CACHE_NAME → frischer Cache, addAll holt alles neu; fehlt eine Datei, bricht der Install ab (alter Stand bleibt).
 
-const CACHE_NAME = 'stunde-v2.3.3';
+const CACHE_NAME = 'stunde-v2.3.4';
 const CACHE_FAMILIE = CACHE_NAME.slice(0, CACHE_NAME.lastIndexOf('-v') + 2);
 
 const ASSETS = [
@@ -12,10 +12,10 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './apple-touch-icon.png',
-  './css/stunde.css?v=2.3.3',
-  './js/stunde.mjs?v=2.3.3',
-  './js/vendor/qrcode.js?v=2.3.3',
-  './js/vendor/jsqr.js?v=2.3.3',
+  './css/stunde.css?v=2.3.4',
+  './js/stunde.mjs?v=2.3.4',
+  './js/vendor/qrcode.js?v=2.3.4',
+  './js/vendor/jsqr.js?v=2.3.4',
 ];
 
 // Freigegebene Version (Zero 20.10.: „nur nach klicken das Update auch gezogen wird“): Der SW liefert aus dem Cache, den der
