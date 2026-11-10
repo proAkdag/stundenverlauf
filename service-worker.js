@@ -1,8 +1,9 @@
 // Stundenverlauf · Service Worker — offline nach dem ersten Laden (Muster: Kladde-SW)
-// CACHE_NAME ist versioniert: = APP_VERSION (js/stunde.mjs) = ?v= (index.html); die Probe prüft die Gleichheit.
+// CACHE_NAME ist versioniert: = APP_VERSION (js/stunde.mjs) = jedes ?v= (index.html, Importe der Module); die Proben prüfen die Gleichheit.
 // Neuer CACHE_NAME → frischer Cache, addAll holt alles neu; fehlt eine Datei, bricht der Install ab (alter Stand bleibt).
+// Jedes Modul steht hier mit genau dem ?v=, mit dem es importiert wird — sonst fehlt es offline (Test _test/node/version.test.mjs).
 
-const CACHE_NAME = 'stunde-v2.3.4';
+const CACHE_NAME = 'stunde-v3.0.0';
 const CACHE_FAMILIE = CACHE_NAME.slice(0, CACHE_NAME.lastIndexOf('-v') + 2);
 
 const ASSETS = [
@@ -12,10 +13,42 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './apple-touch-icon.png',
-  './css/stunde.css?v=2.3.4',
-  './js/stunde.mjs?v=2.3.4',
-  './js/vendor/qrcode.js?v=2.3.4',
-  './js/vendor/jsqr.js?v=2.3.4',
+  './css/stunde.css?v=3.0.0',
+  './js/stunde.mjs?v=3.0.0',
+  './js/zustand.mjs?v=3.0.0',
+  './js/dom.mjs?v=3.0.0',
+  './js/eingabe.mjs?v=3.0.0',
+  './js/einrichtung.mjs?v=3.0.0',
+  './js/buehne.mjs?v=3.0.0',
+  './js/austausch.mjs?v=3.0.0',
+  './js/scanner.mjs?v=3.0.0',
+  './js/kern/update.mjs?v=3.0.0',
+  './js/phasenfenster.mjs?v=3.0.0',
+  './js/bausteine.mjs?v=3.0.0',
+  './js/stundenplan_ansicht.mjs?v=3.0.0',
+  './js/sicherung_ansicht.mjs?v=3.0.0',
+  './js/tage_ansicht.mjs?v=3.0.0',
+  './logic/vorausfuellen.mjs?v=3.0.0',
+  './logic/tage.mjs?v=3.0.0',
+  './bilder/smiley_verstanden.png',
+  './bilder/smiley_nicht_ganz.png',
+  './logic/konstanten.mjs?v=3.0.0',
+  './logic/plan.mjs?v=3.0.0',
+  './logic/speicher.mjs?v=3.0.0',
+  './logic/kurse.mjs?v=3.0.0',
+  './logic/uhren.mjs?v=3.0.0',
+  './logic/abgleich.mjs?v=3.0.0',
+  './logic/planlink.mjs?v=3.0.0',
+  './logic/auftragstext.mjs?v=3.0.0',
+  './logic/bausteine_daten.mjs?v=3.0.0',
+  './logic/stundentypen.mjs?v=3.0.0',
+  './logic/textbausteine.mjs?v=3.0.0',
+  './logic/stundenplan.mjs?v=3.0.0',
+  './logic/stand_v3.mjs?v=3.0.0',
+  './logic/klassenbuch.mjs?v=3.0.0',
+  './logic/sicherung.mjs?v=3.0.0',
+  './js/vendor/qrcode.js?v=3.0.0',
+  './js/vendor/jsqr.js?v=3.0.0',
 ];
 
 // Freigegebene Version (Zero 20.10.: „nur nach klicken das Update auch gezogen wird“): Der SW liefert aus dem Cache, den der

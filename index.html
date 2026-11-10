@@ -6,8 +6,8 @@
 
 <!-- ╔═══ STUNDENVERLAUF · PWA für den Unterricht (iPad) ══════════════════════════╗
      Werk: organisatorisches · Zero 2026-09-30 (Klassenmanagement)
-     Struktur: css/stunde.css · js/stunde.mjs · service-worker.js (offline) · manifest.json
-     Version: APP_VERSION (js) = CACHE_NAME (SW) = ?v= (hier) — die Probe prüft die Gleichheit.
+     Struktur: css/stunde.css · js/stunde.mjs (Einstieg) · js/*.mjs (Ansichten) · logic/*.mjs (ohne DOM) · service-worker.js (offline) · manifest.json
+     Version: APP_VERSION (js/stunde.mjs) = CACHE_NAME (SW) = jedes ?v= — die Proben prüfen die Gleichheit.
      Kein Netz nach dem ersten Laden, nichts verlässt das Gerät (connect-src 'self' nur für den SW).
      media-src mediastream: blob: nur für die Kamera des Scanners (2.3) — das Bild bleibt im Gerät.
 ╚══════════════════════════════════════════════════════════════════════════════╝ -->
@@ -26,11 +26,11 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <!-- iOS macht aus Ziffernfolgen („S. 42, Nr. 3“) sonst Telefon-Links -->
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-<link rel="stylesheet" href="./css/stunde.css?v=2.3.4">
+<link rel="stylesheet" href="./css/stunde.css?v=3.0.0">
 <!-- QR-Code für „Weitergeben“: qrcode-generator (Kazuhiko Arase, MIT), übernommen aus der Werft-Arena (vendor/qrcode.js).
      Der Scanner lädt jsQR (Apache-2.0, ebenfalls aus der Arena, vendor/jsqr.js) erst beim ersten Scan. -->
-<script src="./js/vendor/qrcode.js?v=2.3.4" defer></script>
-<script type="module" src="./js/stunde.mjs?v=2.3.4"></script>
+<script src="./js/vendor/qrcode.js?v=3.0.0" defer></script>
+<script type="module" src="./js/stunde.mjs?v=3.0.0"></script>
 </head>
 <body>
 
@@ -44,11 +44,17 @@
     <div>
       <p class="e-kicker">Klassenmanagement</p>
       <h1>Stundenverlauf</h1>
+      <!-- Tageswahl (Zero 10.11.): zurück, Datum des angezeigten Tags ausgeschrieben (#e-datum), vor, „Heute“; js/tage_ansicht.mjs -->
+      <div class="tagwahl" id="e-tagwahl"></div>
     </div>
     <div class="e-anzeige" id="e-anzeige"></div>
   </header>
 
   <nav class="tag" id="e-tag" aria-label="Stunden des Tages"></nav>
+  <!-- 3.0: „Tag anlegen“ (nur auf Tipp, nur freie Plätze) und der Weg zum Stundenplan, gefüllt von js/stundenplan_ansicht.mjs -->
+  <div class="tag-werkzeug" id="e-tag-werkzeug"></div>
+  <!-- ungestartete Stunden vom letzten Schultag, „Auf heute holen“ (js/tage_ansicht.mjs) -->
+  <div id="e-tag-hinweis"></div>
 
   <div class="e-raster">
     <div>
@@ -56,6 +62,7 @@
         <h2 id="h-fach">1. Stunde</h2>
         <label class="feld"><span>Fach</span><select id="e-fach"></select></label>
         <label class="feld"><span>Kurs</span><input type="text" id="e-kurs" autocomplete="off" maxlength="20" placeholder="z. B. 7b"></label>
+        <div class="kurs-angebot" id="e-ausfall-angebot"></div>
         <div class="kurs-angebot" id="e-kurs-angebot"></div>
         <div class="stunde-werkzeug">
           <select id="e-kopie" aria-label="Plan aus einer anderen Stunde übernehmen"></select>
@@ -72,7 +79,8 @@
         <h2 id="h-heute">Heute</h2>
         <label class="feld"><span>Thema</span><input type="text" id="e-thema" autocomplete="off" maxlength="120" placeholder="z. B. Brüche vergleichen"></label>
         <label class="feld"><span>Modul</span><input type="text" id="e-modul" autocomplete="off" maxlength="120" placeholder="z. B. Modul 3 in Moodle"></label>
-        <label class="feld"><span>Ziel (optional)</span><input type="text" id="e-ziel" autocomplete="off" maxlength="160" placeholder="z. B. Am Ende kannst du Brüche der Größe nach ordnen."></label>
+        <!-- Entwurf 3.0: Ziel als mitwachsendes Feld (bis 160 Zeichen ganz sichtbar), Enter fügt keine Zeile ein -->
+        <div class="feld mit-reihe"><label for="e-ziel">Ziel (optional)</label><textarea id="e-ziel" class="ziel-feld" rows="1" autocomplete="off" maxlength="160" placeholder="z. B. Am Ende kannst du Brüche der Größe nach ordnen."></textarea><div id="e-ziel-bs"></div></div>
       </section>
 
       <section class="karte" aria-labelledby="h-material">
@@ -89,13 +97,15 @@
     <div>
       <section class="karte" aria-labelledby="h-ablauf">
         <h2 id="h-ablauf">Ablauf</h2>
+        <div class="nachher" id="e-nachher" hidden></div>
+        <div class="typen" id="e-typen" role="group" aria-label="Stundentyp"></div>
         <div class="muster" id="e-muster" aria-label="Muster"></div>
         <div class="rahmen" id="e-einstieg"></div>
         <ol class="phasen" id="e-phasen"></ol>
         <div class="plus-reihe" id="e-plus"></div>
         <div class="rahmen" id="e-abschluss"></div>
         <div class="abschluss-felder">
-          <input type="text" id="e-ab-text" autocomplete="off" maxlength="160" placeholder="Abschluss (optional) – z. B. Ergebnisse vergleichen" aria-label="Text zum Abschluss">
+          <div class="mit-reihe"><input type="text" id="e-ab-text" autocomplete="off" maxlength="160" placeholder="Abschluss (optional) – z. B. Ergebnisse vergleichen" aria-label="Text zum Abschluss"><div id="e-ab-text-bs"></div></div>
           <div id="e-ab-ha"></div>
         </div>
         <div class="budget">
@@ -114,7 +124,11 @@
 
       <div class="start-reihe" id="e-start-reihe"></div>
       <p class="fuss" id="e-wach" hidden>In dieser Ansicht kann die Seite den Bildschirm nicht wach halten. Am iPad für die Stunde: Einstellungen → Anzeige &amp; Helligkeit → Automatische Sperre → Nie.</p>
-      <p class="fuss" id="e-fuss">Läuft ohne Internet. Die sechs Stunden bleiben auf diesem Gerät gespeichert.</p>
+      <p class="fuss" id="e-fuss">Läuft ohne Internet. Die Stunden bleiben auf diesem Gerät gespeichert.</p>
+      <!-- Fester Update-Eintrag (3.0.0): Version und „Nach Update suchen“, gefüllt von js/kern/update.mjs; der Behälter darf umziehen -->
+      <div class="e-version" id="e-update"></div>
+      <!-- Sichern und Zurückholen (js/sicherung_ansicht.mjs): eigener Behälter, #e-update schreibt sich ganz neu -->
+      <div class="e-sicherung" id="e-sicherung"></div>
     </div>
   </div>
 </main>
@@ -159,6 +173,15 @@
     <button type="button" class="knopf" id="d-scan-zu">Abbrechen</button>
   </div>
 </dialog>
+<!-- Entwurf 3.0: Phase einfügen auf der Bühne — Blatt unten, Schreibfeld im Fokus, Bühne bleibt sichtbar -->
+<dialog id="d-einfuegen" class="dialog b-blatt" aria-labelledby="d-einfuegen-titel">
+  <h2 id="d-einfuegen-titel">Phase einfügen</h2>
+  <div id="d-einfuegen-form" class="d-form"></div>
+  <div class="d-knoepfe">
+    <button type="button" class="knopf" id="d-einfuegen-nein">Abbrechen</button>
+    <button type="button" class="knopf haupt" id="d-einfuegen-ja">Einfügen</button>
+  </div>
+</dialog>
 <dialog id="d-import" class="dialog" aria-labelledby="d-import-titel">
   <h2 id="d-import-titel">Plan übernehmen</h2>
   <p class="d-text" id="d-import-text"></p>
@@ -168,6 +191,42 @@
     <button type="button" class="knopf" id="d-import-nein">Verwerfen</button>
   </div>
 </dialog>
+
+<!-- 3.0 Vorausfüllen: Blätter von unten für Bausteine, Stundenplan und Sicherung -->
+<dialog id="d-luecke" class="dialog e-blatt" aria-labelledby="d-luecke-titel">
+  <h2 id="d-luecke-titel">Baustein</h2>
+  <div id="d-luecke-form" class="d-form"></div>
+  <div class="d-knoepfe">
+    <button type="button" class="knopf" id="d-luecke-nein">Abbrechen</button>
+    <button type="button" class="knopf haupt" id="d-luecke-ja">Einfügen</button>
+  </div>
+</dialog>
+<dialog id="d-mehr" class="dialog e-blatt" aria-labelledby="d-mehr-titel">
+  <h2 id="d-mehr-titel">Bausteine</h2>
+  <div id="d-mehr-liste" class="mehr-teile"></div>
+  <div class="d-knoepfe">
+    <button type="button" class="knopf" id="d-mehr-merken">Als Baustein merken</button>
+    <button type="button" class="knopf" id="d-mehr-zu">Schließen</button>
+  </div>
+</dialog>
+<dialog id="d-plan" class="dialog e-blatt" aria-labelledby="d-plan-titel">
+  <h2 id="d-plan-titel">Stundenplan</h2>
+  <div id="d-plan-tage"></div>
+  <ol id="d-plan-liste" class="sp-liste"></ol>
+  <div class="d-knoepfe">
+    <button type="button" class="knopf haupt" id="d-plan-zu">Fertig</button>
+  </div>
+</dialog>
+<dialog id="d-sicherung" class="dialog e-blatt" aria-labelledby="d-sicherung-titel">
+  <h2 id="d-sicherung-titel">Zurückholen</h2>
+  <p class="d-text" id="d-sicherung-text"></p>
+  <div class="d-knoepfe">
+    <button type="button" class="knopf" id="d-sicherung-nein">Abbrechen</button>
+    <button type="button" class="knopf" id="d-sicherung-muster">Nur Muster und Bausteine</button>
+    <button type="button" class="knopf haupt" id="d-sicherung-alles">Alles ersetzen</button>
+  </div>
+</dialog>
+<p class="e-meldung" id="e-meldung" popover="manual" role="status" hidden></p>
 
 <noscript>Diese Seite braucht JavaScript.</noscript>
 </body>
