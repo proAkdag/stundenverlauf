@@ -5,9 +5,9 @@
      Uhren hängen an den Phasen-IDs und laufen weiter; eine geänderte Dauer verschiebt das Ende (kürzer als schon gelaufen:
      Ende jetzt, wie „− 1“). „blieb offen“ und „gelaufen“ bleiben die dieses Geräts.
    · Sonst ist es ein neuer Plan für diesen Platz, wie eine Übernahme: nicht gelaufen, nichts offen, kein alter Lauf. */
-import { heute } from './plan.mjs?v=3.0.0';
-import { fensterIds, laufFrisch, uhrFuer, uhrenAnpassen } from './uhren.mjs?v=3.0.0';
-import { kursMerken } from './kurse.mjs?v=3.0.0';
+import { heute } from './plan.mjs?v=3.0.1';
+import { fensterIds, laufFrisch, uhrFuer, uhrenAnpassen } from './uhren.mjs?v=3.0.1';
+import { kursMerken } from './kurse.mjs?v=3.0.1';
 
 /* aufBuehne = die Bühne zeigt gerade die Stunde i */
 export const laeuftGerade = (S, i, aufBuehne) => aufBuehne || (laufFrisch(S) && S.lauf.stunde === i && S.stunden[i]?.gelaufen === heute());

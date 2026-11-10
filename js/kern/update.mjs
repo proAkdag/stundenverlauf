@@ -4,7 +4,7 @@
    in der Stunde, denn die Bühne zeigt kein Banner. Die Prüfung blockiert nie das Öffnen: sie läuft nach dem Laden, bei
    jedem Sichtbarwerden und auf „Nach Update suchen“. Suchen lädt eine neue Fassung nur herunter; benutzt wird sie erst
    nach dem Klick auf „Aktualisieren“. */
-import { $, h } from '../dom.mjs?v=3.0.0';
+import { $, h } from '../dom.mjs?v=3.0.1';
 
 let registrierung = null, neueFassung = false;
 // vorUpdate: läuft nach dem Klick auf „Aktualisieren“, vor der Freigabe (js/sicherung_ansicht.mjs bietet dort das Sichern an)

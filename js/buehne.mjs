@@ -1,16 +1,16 @@
 // Stundenverlauf · js/buehne.mjs — die Bühne: Ablauf der Fenster, Uhr, Verlaufsleiste, Takt, Signal, Wachhalten,
 // Bearbeiten auf der Bühne (3.0). Was ein Fenster zeigt, steht in js/phasenfenster.mjs.
-import { FORM, ARBEIT } from '../logic/konstanten.mjs?v=3.0.0';
-import { heute, neuePhase, phaseEinsetzen, einfuegeStelle, PHASEN_MAX } from '../logic/plan.mjs?v=3.0.0';
-import { kursMerken } from '../logic/kurse.mjs?v=3.0.0';
-import { bauFenster, fensterName, fensterKurz, laufFrisch, neuerLauf, uhrFuer, restVon, zustand, uhrAktion, hauptWas, selbstlauf, neuAbgelaufen, nachSelbstlauf } from '../logic/uhren.mjs?v=3.0.0';
-import { $, h, icon } from './dom.mjs?v=3.0.0';
-import { S, lage, plan, fachAnzeige, schreibe, speichere, setzeFarbe } from './zustand.mjs?v=3.0.0';
-import { segment, stepper, auftragFeld, listeWeiter } from './eingabe.mjs?v=3.0.0';
-import { fensterInhalt, passeAuftragAn } from './phasenfenster.mjs?v=3.0.0';
-import { malEinrichten } from './einrichtung.mjs?v=3.0.0';
-import { eingangLesen } from './austausch.mjs?v=3.0.0';
-import { scannen } from './scanner.mjs?v=3.0.0';
+import { FORM, ARBEIT } from '../logic/konstanten.mjs?v=3.0.1';
+import { heute, neuePhase, phaseEinsetzen, einfuegeStelle, PHASEN_MAX } from '../logic/plan.mjs?v=3.0.1';
+import { kursMerken } from '../logic/kurse.mjs?v=3.0.1';
+import { bauFenster, fensterName, fensterKurz, laufFrisch, neuerLauf, uhrFuer, restVon, zustand, uhrAktion, hauptWas, selbstlauf, neuAbgelaufen, nachSelbstlauf } from '../logic/uhren.mjs?v=3.0.1';
+import { $, h, icon } from './dom.mjs?v=3.0.1';
+import { S, lage, plan, fachAnzeige, schreibe, speichere, setzeFarbe } from './zustand.mjs?v=3.0.1';
+import { segment, stepper, auftragFeld, listeWeiter } from './eingabe.mjs?v=3.0.1';
+import { fensterInhalt, passeAuftragAn } from './phasenfenster.mjs?v=3.0.1';
+import { malEinrichten } from './einrichtung.mjs?v=3.0.1';
+import { eingangLesen } from './austausch.mjs?v=3.0.1';
+import { scannen } from './scanner.mjs?v=3.0.1';
 
 const ZEIT = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
 

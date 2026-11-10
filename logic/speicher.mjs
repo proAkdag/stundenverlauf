@@ -24,8 +24,8 @@
                  der Bühne). Ein Feld mit Inhalt steht auch bei „aus“ da, sonst wäre der Inhalt nicht mehr zu ändern.
      v           3 — Stand-Fassung; die 2.3.4 kennt plan, bausteine, fach und v nicht und lässt sie beim Schreiben fallen
    Jedes Feld läuft beim Laden durch seine Prüfung — ein Feld, das dort fehlt, geht beim Neuladen verloren. */
-import { STUNDEN, LAUF_GUELTIG_MS, MUSTER_MAX } from './konstanten.mjs?v=3.0.0';
-import { zahl, gueltigeId, kursName, kursSchluessel, pruefePlan, pruefeMuster, pruefeKurs } from './plan.mjs?v=3.0.0';
+import { STUNDEN, LAUF_GUELTIG_MS, MUSTER_MAX } from './konstanten.mjs?v=3.0.1';
+import { zahl, gueltigeId, kursName, kursSchluessel, pruefePlan, pruefeMuster, pruefeKurs } from './plan.mjs?v=3.0.1';
 
 export function grundStand() {
   return {

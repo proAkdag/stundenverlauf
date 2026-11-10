@@ -1,11 +1,11 @@
 // Stundenverlauf · logic/sicherung.mjs — Pläne, Muster, eigene Bausteine und Stundenplan als Datei sichern und zurückholen
 // (Konzept §10). Schutz vor dem Rückwechsel auf eine ältere Fassung und vor Gerätewechsel. Ohne laufende Stunde und Kamera:
 // beides gehört zum Gerät, nicht zur Planung. Eingelesen wird mit denselben Prüfungen wie beim Laden (leseStand + erweitereStand).
-import { FAECHER } from './konstanten.mjs?v=3.0.0';
-import { hat } from './plan.mjs?v=3.0.0';
-import { leseStand } from './speicher.mjs?v=3.0.0';
-import { erweitereStand } from './stand_v3.mjs?v=3.0.0';
-import { tageZahl } from './tage.mjs?v=3.0.0';
+import { FAECHER } from './konstanten.mjs?v=3.0.1';
+import { hat } from './plan.mjs?v=3.0.1';
+import { leseStand } from './speicher.mjs?v=3.0.1';
+import { erweitereStand } from './stand_v3.mjs?v=3.0.1';
+import { tageZahl } from './tage.mjs?v=3.0.1';
 
 export const FORMAT = 'stundenverlauf-sicherung', FASSUNG = 1, GROESSE_MAX = 2 * 1024 * 1024;
 const zweistellig = n => String(n).padStart(2, '0');

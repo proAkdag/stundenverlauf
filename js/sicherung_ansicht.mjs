@@ -1,14 +1,14 @@
 // Stundenverlauf · js/sicherung_ansicht.mjs — „Sichern“ und „Zurückholen“ am Ende der Einrichtung, neben Version und Update.
 // Die Datei baut und prüft logic/sicherung.mjs; hier nur Teilen oder Herunterladen, Datei wählen, Vorschau, Rückfrage.
 // Die Bühne erreicht das nicht: der Behälter liegt in der Einrichtung, die während der Stunde verborgen ist.
-import { sicherungAus, pruefeSicherung, vorschau, zusammenfuehren } from '../logic/sicherung.mjs?v=3.0.0';
-import { typIds } from '../logic/stundentypen.mjs?v=3.0.0';
-import { DATEN } from '../logic/bausteine_daten.mjs?v=3.0.0';
-import { $, h, melde } from './dom.mjs?v=3.0.0';
-import { S, lage, schreibe, speicherForm } from './zustand.mjs?v=3.0.0';
-import { updateHaken } from './kern/update.mjs?v=3.0.0';
-import { heute } from '../logic/plan.mjs?v=3.0.0';
-import { wechsleTag } from '../logic/tage.mjs?v=3.0.0';
+import { sicherungAus, pruefeSicherung, vorschau, zusammenfuehren } from '../logic/sicherung.mjs?v=3.0.1';
+import { typIds } from '../logic/stundentypen.mjs?v=3.0.1';
+import { DATEN } from '../logic/bausteine_daten.mjs?v=3.0.1';
+import { $, h, melde } from './dom.mjs?v=3.0.1';
+import { S, lage, schreibe, speicherForm } from './zustand.mjs?v=3.0.1';
+import { updateHaken } from './kern/update.mjs?v=3.0.1';
+import { heute } from '../logic/plan.mjs?v=3.0.1';
+import { wechsleTag } from '../logic/tage.mjs?v=3.0.1';
 
 let version = '', neuMalen = () => {};
 

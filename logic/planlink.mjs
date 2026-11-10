@@ -4,7 +4,7 @@
    2.3 (Zero: „Smartphone ist damit die Zentrale“): pid und Phasen-IDs reisen mit. Kommt der Plan mit derselben pid
    zurück, aktualisiert er genau diese Stunde — auch während sie auf der Bühne läuft. „offen“ und „gelaufen“ bleiben
    Sache des Geräts, auf dem die Stunde lief. Ohne DOM: braucht nur CompressionStream, Blob und Response. */
-import { pruefePlan } from './plan.mjs?v=3.0.0';
+import { pruefePlan } from './plan.mjs?v=3.0.1';
 
 export const b64url = {
   an: u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),

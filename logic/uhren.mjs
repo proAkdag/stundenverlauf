@@ -1,7 +1,7 @@
 // Stundenverlauf · logic/uhren.mjs — Fenster der Bühne, Uhren der Phasen, Selbstlauf. Ohne DOM; die Zeit kommt aus Date.now().
 /* Zeit: absolute Endzeit, damit die Uhr beim Blättern und nach Neuladen weiterläuft.
    Uhr = {gesamt, rest, ende (ms | null), plan (min), gestartet, gemeldet, weiter}; sie hängt im Lauf an der Phasen-ID. */
-import { FORM, LAUF_GUELTIG_MS } from './konstanten.mjs?v=3.0.0';
+import { FORM, LAUF_GUELTIG_MS } from './konstanten.mjs?v=3.0.1';
 
 /* Fenster der Bühne in Reihenfolge: Eröffnung, Thema, je Phase eines, Abschluss */
 export function bauFenster(P) {

@@ -2,9 +2,9 @@
 /* Muster Werft-Arena guest.js: Kamera → BarcodeDetector, wo es ihn gibt, sonst jsQR (Apache-2.0, aus der Arena, erst beim
    ersten Scan geladen). Die Vorschau ist klein und unscharf: am Beamer gespiegelt soll niemand zu erkennen sein —
    gelesen wird das Kamerabild, nicht die Vorschau. */
-import { planTeilIn } from '../logic/planlink.mjs?v=3.0.0';
-import { $ } from './dom.mjs?v=3.0.0';
-import { S, schreibe } from './zustand.mjs?v=3.0.0';
+import { planTeilIn } from '../logic/planlink.mjs?v=3.0.1';
+import { $ } from './dom.mjs?v=3.0.1';
+import { S, schreibe } from './zustand.mjs?v=3.0.1';
 
 // jsQR trägt dieselbe Version wie dieses Modul (?v= im eigenen Pfad), sonst fände der Service Worker es nicht im Cache
 const VERSION = new URL(import.meta.url).searchParams.get('v');

@@ -1,6 +1,6 @@
 // Stundenverlauf · logic/plan.mjs — ein Plan, ein Muster, ein Kurs-Eintrag: anlegen und prüfen.
 // Jedes Feld, das von außen kommt (Speicher, Link, QR), läuft durch seine Prüfung. Ein Feld, das hier fehlt, geht verloren.
-import { FAECHER, FORM, MATERIAL, STUNDEN, FENSTER_FEST } from './konstanten.mjs?v=3.0.0';
+import { FAECHER, FORM, MATERIAL, STUNDEN, FENSTER_FEST } from './konstanten.mjs?v=3.0.1';
 
 export const neueId =() => Math.random().toString(36).slice(2, 10);
 export const zahl = (v, min, max, std) => { const n = Number(v); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : std; };

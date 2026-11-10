@@ -3,8 +3,8 @@
    Nur Plandaten, keine Namen. Danach folgt der Eintrag den Änderungen genau dieser Stunde (auch einem geänderten
    Kursnamen); spätere Änderungen an einer früheren Stunde desselben Tages verdrängen ihn nicht (Fremdprüfung 2026-09-30).
    Alle Funktionen arbeiten auf dem Stand S (logic/speicher.mjs) und ändern ihn an Ort und Stelle. */
-import { KURSE_MAX } from './konstanten.mjs?v=3.0.0';
-import { heute, kursSchluessel, neueId, pruefePlan } from './plan.mjs?v=3.0.0';
+import { KURSE_MAX } from './konstanten.mjs?v=3.0.1';
+import { heute, kursSchluessel, neueId, pruefePlan } from './plan.mjs?v=3.0.1';
 
 export const offeneVon = k => [...k.uebertrag, ...k.plan.phasen.filter(p => p.offen)];
 

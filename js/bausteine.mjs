@@ -1,12 +1,12 @@
 // Stundenverlauf · js/bausteine.mjs — Textbausteine unter den Feldern der Einrichtung: Chip-Reihe, „Mehr“, Lücken-Blatt,
 // eigene Bausteine merken und löschen. Die Auswahl und das Einfügen rechnen logic/textbausteine.mjs und logic/vorausfuellen.mjs.
 // Zero 10.11.: „Das Eintippen aller Aufträge wird viel, wenn man es ordentlich machen will“.
-import { DATEN } from '../logic/bausteine_daten.mjs?v=3.0.0';
-import { bausteineFuer, lueckenVon, fuelle, einfuegen, zaehle, eigenAnlegen, eigenLoeschen, GRENZEN, EIGEN_MAX } from '../logic/textbausteine.mjs?v=3.0.0';
-import { reiheFuer, chipText } from '../logic/vorausfuellen.mjs?v=3.0.0';
-import { neueId } from '../logic/plan.mjs?v=3.0.0';
-import { $, h, icon, melde } from './dom.mjs?v=3.0.0';
-import { S, plan, schreibe } from './zustand.mjs?v=3.0.0';
+import { DATEN } from '../logic/bausteine_daten.mjs?v=3.0.1';
+import { bausteineFuer, lueckenVon, fuelle, einfuegen, zaehle, eigenAnlegen, eigenLoeschen, GRENZEN, EIGEN_MAX } from '../logic/textbausteine.mjs?v=3.0.1';
+import { reiheFuer, chipText } from '../logic/vorausfuellen.mjs?v=3.0.1';
+import { neueId } from '../logic/plan.mjs?v=3.0.1';
+import { $, h, icon, melde } from './dom.mjs?v=3.0.1';
+import { S, plan, schreibe } from './zustand.mjs?v=3.0.1';
 
 // Nach Merken oder Löschen eines eigenen Bausteins neu zeichnen (setzt js/einrichtung.mjs)
 export const reiheHaken = { nachAenderung: () => {} };

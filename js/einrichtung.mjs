@@ -1,23 +1,23 @@
 // Stundenverlauf · js/einrichtung.mjs — die Einrichtung: Stunden des Tages, Kurs, Heute, Material, Ablauf, Start.
-import { FACH_LISTE, FAECHER, MATERIAL, FORM, ARBEIT, MUSTER_MAX, formName, halb } from '../logic/konstanten.mjs?v=3.0.0';
-import { heute, neuePhase, standardPlan, pruefePlan, pruefeMuster, neueId, hatGetipptes, planSumme, phaseEinsetzen, pruefeLink, PHASEN_MAX } from '../logic/plan.mjs?v=3.0.0';
-import { offeneVon, letzteStunde as letzteStundeVon, planWieLetzte, offenAlsNeu, bausteinVorschlaege } from '../logic/kurse.mjs?v=3.0.0';
-import { bauFenster, fensterName, laufFrisch, selbstlaufAb } from '../logic/uhren.mjs?v=3.0.0';
-import { stichpunkt } from '../logic/auftragstext.mjs?v=3.0.0';
-import { stundentypenFuer, planAusTyp } from '../logic/stundentypen.mjs?v=3.0.0';
-import { verloreneTexte, musterStellen, freiAusPlan } from '../logic/vorausfuellen.mjs?v=3.0.0';
-import { datumVon, vergangen } from '../logic/tage.mjs?v=3.0.0';
-import { DATEN } from '../logic/bausteine_daten.mjs?v=3.0.0';
-import { $, h, icon, melde } from './dom.mjs?v=3.0.0';
-import { S, lage, haken, plan, fachAnzeige, schreibe, speichere, setzeFarbe } from './zustand.mjs?v=3.0.0';
-import { segment, stepper, auftragFeld } from './eingabe.mjs?v=3.0.0';
-import { bausteinReihe, reiheHaken } from './bausteine.mjs?v=3.0.0';
-import { malTagWerkzeug, initStundenplan } from './stundenplan_ansicht.mjs?v=3.0.0';
-import { starteBuehne, wachGeht } from './buehne.mjs?v=3.0.0';
-import { weitergeben, eingangLesen, initAustausch } from './austausch.mjs?v=3.0.0';
-import { scannen } from './scanner.mjs?v=3.0.0';
+import { FACH_LISTE, FAECHER, MATERIAL, FORM, ARBEIT, MUSTER_MAX, formName, halb } from '../logic/konstanten.mjs?v=3.0.1';
+import { heute, neuePhase, standardPlan, pruefePlan, pruefeMuster, neueId, hatGetipptes, planSumme, phaseEinsetzen, pruefeLink, PHASEN_MAX } from '../logic/plan.mjs?v=3.0.1';
+import { offeneVon, letzteStunde as letzteStundeVon, planWieLetzte, offenAlsNeu, bausteinVorschlaege } from '../logic/kurse.mjs?v=3.0.1';
+import { bauFenster, fensterName, laufFrisch, selbstlaufAb } from '../logic/uhren.mjs?v=3.0.1';
+import { stichpunkt } from '../logic/auftragstext.mjs?v=3.0.1';
+import { stundentypenFuer, planAusTyp, gleicherName } from '../logic/stundentypen.mjs?v=3.0.1';
+import { verloreneTexte, musterStellen, freiAusPlan } from '../logic/vorausfuellen.mjs?v=3.0.1';
+import { datumVon, vergangen } from '../logic/tage.mjs?v=3.0.1';
+import { DATEN } from '../logic/bausteine_daten.mjs?v=3.0.1';
+import { $, h, icon, melde } from './dom.mjs?v=3.0.1';
+import { S, lage, haken, plan, fachAnzeige, schreibe, speichere, setzeFarbe } from './zustand.mjs?v=3.0.1';
+import { segment, stepper, auftragFeld } from './eingabe.mjs?v=3.0.1';
+import { bausteinReihe, reiheHaken } from './bausteine.mjs?v=3.0.1';
+import { malTagWerkzeug, initStundenplan } from './stundenplan_ansicht.mjs?v=3.0.1';
+import { starteBuehne, wachGeht } from './buehne.mjs?v=3.0.1';
+import { weitergeben, eingangLesen, initAustausch } from './austausch.mjs?v=3.0.1';
+import { scannen } from './scanner.mjs?v=3.0.1';
 // Tageswahl im Kopf, vergangene Tage, Ausfall, „nach der Stunde“ (Klassenbuch): js/tage_ansicht.mjs
-import { malTage, initTage, startErlaubt, ausfallKnopf, malAngebot } from './tage_ansicht.mjs?v=3.0.0';
+import { malTage, initTage, startErlaubt, ausfallKnopf, malAngebot } from './tage_ansicht.mjs?v=3.0.1';
 
 const laufGueltig = () => laufFrisch(S) && S.lauf.stunde === S.aktiv;
 
@@ -84,22 +84,30 @@ function offenVerwerfen() {
   schreibe(); malKursAngebot();
 }
 
-/* ─── Stundentypen des Fachs (logic/stundentypen.mjs): ein Tipp setzt Ablauf, Minuten und Material ─── */
+/* ─── Stundentypen des Fachs (logic/stundentypen.mjs): ein Tipp setzt Ablauf, Minuten und Material.
+   Ein überschriebener Typ (eigenes Muster des Fachs mit seinem Namen) ist gefüllt und trägt ein ×: es holt den mitgelieferten zurück ─── */
+let geladen = null;   // { plan, name }: der zuletzt in diesen Plan geladene Stundentyp oder das Muster, Namensvorschlag beim Speichern
 function malTypen() {
-  const typen = stundentypenFuer(DATEN, plan().fach);
-  $('e-typen').replaceChildren(...typen.map(t => h('button', { type: 'button', class: 'typ-chip', 'data-typ': t.id, onclick: () => typLaden(t) }, t.name)));
+  const typen = stundentypenFuer(DATEN, plan().fach, S.muster);
+  $('e-typen').replaceChildren(...typen.map(t => {
+    const laden = h('button', { type: 'button', class: 'typ-chip', 'data-typ': t.id, onclick: () => typLaden(t) }, t.name);
+    return t.eigen == null ? laden : h('span', { class: 'chip typ-eigen' }, laden,
+      h('button', { type: 'button', class: 'typ-weg', 'aria-label': `Eigene Fassung von ${t.name} verwerfen`, onclick: () => musterLoeschen(t.eigen) }, icon('x')));
+  }));
 }
 function typLaden(t) {
   const P = plan(), neu = planAusTyp(t, P, S.stunde).plan, weg = verloreneTexte(P, neu);
   if (weg && !confirm(`Ablauf der ${S.aktiv + 1}. Stunde durch „${t.name}“ ersetzen? ${weg === 1 ? 'Ein Auftrag geht' : weg + ' Aufträge gehen'} dabei verloren.`)) return;
-  Object.assign(P, neu);
+  Object.assign(P, neu); geladen = { plan: P, name: t.name };
   speichere(); malEinrichten();
 }
 
-/* ─── Muster: nur Ablauf und Material (Zero 2026-09-30) — Tipp lädt, × löscht; gezeigt werden die des Fachs und die ohne Fach ─── */
+/* ─── Muster: nur Ablauf und Material (Zero 2026-09-30) — Tipp lädt, × löscht; gezeigt werden die des Fachs und die ohne Fach.
+   Ein Muster, das einen Stundentyp überschreibt, steht oben an dessen Stelle und hier nicht noch einmal ─── */
 function malMuster() {
+  const alsTyp = new Set(stundentypenFuer(DATEN, plan().fach, S.muster).map(t => t.eigen));
   $('e-muster').replaceChildren(
-    ...musterStellen(S.muster, plan().fach).map(i => [S.muster[i], i]).map(([m, i]) => h('span', { class: 'chip muster-chip' },
+    ...musterStellen(S.muster, plan().fach).filter(i => !alsTyp.has(i)).map(i => [S.muster[i], i]).map(([m, i]) => h('span', { class: 'chip muster-chip' },
       h('button', { type: 'button', class: 'muster-laden', onclick: () => musterLaden(i) }, m.name),
       h('button', { type: 'button', 'aria-label': `Muster ${m.name} löschen`, onclick: () => musterLoeschen(i) }, icon('x')))),
     // ohne Phasen gibt es nichts zu merken
@@ -107,15 +115,19 @@ function malMuster() {
 }
 function musterSpeichern() {
   const P = plan();
-  const name = prompt('Name für das Muster (z. B. Übungsstunde):', `${P.phasen.filter(p => p.typ !== 'pause').length} Phasen · ${halb(S.stunde)} min`);
+  const name = prompt('Name für das Muster (z. B. Übungsstunde). Heißt es wie ein Stundentyp, ersetzt es ihn.',
+    geladen?.plan === P ? geladen.name : `${P.phasen.filter(p => p.typ !== 'pause').length} Phasen · ${halb(S.stunde)} min`);
   const m = pruefeMuster({ name, einstieg: P.einstieg, phasen: P.phasen, abschlussMin: P.abschluss.min, material: P.material, eigenes: P.eigenes });
   if (!m) return;
   m.fach = P.fach;   // pruefeMuster kennt das Fach nicht; logic/stand_v3.mjs liest es beim Laden zurück
-  const alt = S.muster.findIndex(x => x.name.toLowerCase() === m.name.toLowerCase());
-  if (alt >= 0) { if (!confirm(`Muster „${m.name}“ ersetzen?`)) return; S.muster[alt] = m; }
-  else if (S.muster.length >= MUSTER_MAX) { alert(`Es gibt schon ${MUSTER_MAX} Muster. Lösche zuerst eines (×) oder ersetze eines mit gleichem Namen.`); return; }
-  else S.muster.push(m);
-  schreibe(); malMuster();
+  // gleicher Name im selben Fach (oder ohne Fach) wird ersetzt; dasselbe Muster darf es je Fach einmal geben
+  const typ = stundentypenFuer(DATEN, P.fach).find(t => gleicherName(t.name, m.name));
+  const alt = S.muster.findIndex(x => (!x.fach || x.fach === m.fach) && gleicherName(x.name, m.name));
+  if (alt < 0 && S.muster.length >= MUSTER_MAX) { alert(`Es gibt schon ${MUSTER_MAX} Muster. Lösche zuerst eines (×) oder ersetze eines mit gleichem Namen.`); return; }
+  if (typ ? !confirm(`Stundentyp „${typ.name}“ in ${P.fach} durch diesen Ablauf ersetzen? Das × am Chip holt den mitgelieferten zurück.`)
+    : alt >= 0 && !confirm(`Muster „${m.name}“ ersetzen?`)) return;
+  if (alt >= 0) S.muster[alt] = m; else S.muster.push(m);
+  schreibe(); malTypen(); malMuster();
 }
 function musterLaden(i) {
   const m = S.muster[i], P = plan();
@@ -125,14 +137,16 @@ function musterLaden(i) {
   P.einstieg = m.einstieg;
   P.phasen = m.phasen.map(x => neuePhase(x.typ, x.min, x.groesse));
   P.abschluss.min = m.abschlussMin;
-  P.material = [...m.material]; P.eigenes = [...m.eigenes];
+  P.material = [...m.material]; P.eigenes = [...m.eigenes]; geladen = { plan: P, name: m.name };
   speichere(); malEinrichten();
 }
 function musterLoeschen(i) {
   const m = S.muster[i];
-  if (!m || !confirm(`Muster „${m.name}“ löschen?`)) return;
+  if (!m) return;
+  const typ = stundentypenFuer(DATEN, m.fach, S.muster).find(t => t.eigen === i);
+  if (!confirm(typ ? `Deine Fassung von „${typ.name}“ verwerfen? Dann gilt wieder die mitgelieferte.` : `Muster „${m.name}“ löschen?`)) return;
   S.muster.splice(i, 1);
-  schreibe(); malMuster();
+  schreibe(); malTypen(); malMuster();
 }
 
 /* ─── Material ─── */

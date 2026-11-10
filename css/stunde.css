@@ -279,6 +279,9 @@
   .typen:empty { display: none; }
   .typ-chip { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--fach); background: var(--flaeche); color: var(--fach);
     font-size: 15px; font-weight: 650; }
+  /* überschriebener Stundentyp: gefüllt wie ein Muster (eigen), das × holt den mitgelieferten zurück */
+  .typ-eigen { padding: 0 4px 0 0; color: var(--fach); }
+  .chip .typ-chip { width: auto; height: auto; padding: 0 4px 0 14px; border: 0; background: transparent; }
   /* Tagesleiste: „Tag anlegen“ und Stundenplan */
   .tag-werkzeug { display: flex; align-items: center; gap: 12px; margin: -8px 0 16px; }
   .tag-werkzeug .leise-knopf { margin-left: auto; }

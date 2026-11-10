@@ -1,15 +1,15 @@
 // Stundenverlauf · js/zustand.mjs — der eine Stand der App (S), der gezeigte Plan und das Schreiben in den Speicher.
 // Alle Ansichten lesen und ändern dasselbe Objekt S; geschrieben wird nur hier.
-import { SCHLUESSEL, FAECHER, ANZEIGE } from '../logic/konstanten.mjs?v=3.0.0';
-import { standardPlan } from '../logic/plan.mjs?v=3.0.0';
-import { leseStand } from '../logic/speicher.mjs?v=3.0.0';
-import { kursMerken } from '../logic/kurse.mjs?v=3.0.0';
-import { erweitereStand } from '../logic/stand_v3.mjs?v=3.0.0';
-import { typIds } from '../logic/stundentypen.mjs?v=3.0.0';
-import { wochentag, eintragGilt, entwurfFuer } from '../logic/stundenplan.mjs?v=3.0.0';
-import { DATEN } from '../logic/bausteine_daten.mjs?v=3.0.0';
-import { datumVon, fuerSpeicher } from '../logic/tage.mjs?v=3.0.0';
-import { $, melde } from './dom.mjs?v=3.0.0';
+import { SCHLUESSEL, FAECHER, ANZEIGE } from '../logic/konstanten.mjs?v=3.0.1';
+import { standardPlan } from '../logic/plan.mjs?v=3.0.1';
+import { leseStand } from '../logic/speicher.mjs?v=3.0.1';
+import { kursMerken } from '../logic/kurse.mjs?v=3.0.1';
+import { erweitereStand } from '../logic/stand_v3.mjs?v=3.0.1';
+import { typIds } from '../logic/stundentypen.mjs?v=3.0.1';
+import { wochentag, eintragGilt, entwurfFuer } from '../logic/stundenplan.mjs?v=3.0.1';
+import { DATEN } from '../logic/bausteine_daten.mjs?v=3.0.1';
+import { datumVon, fuerSpeicher } from '../logic/tage.mjs?v=3.0.1';
+import { $, melde } from './dom.mjs?v=3.0.1';
 
 let roh = null, lesbar = true;
 try { roh = localStorage.getItem(SCHLUESSEL); } catch { lesbar = false; }

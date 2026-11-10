@@ -2,11 +2,11 @@
 /* 3.0 (Zero 10.11.: „Die Uhr ist zu groß. Der Auftrag zu klein. Das Stundenziel nirgends sichtbar.“), Maße im Entwurf
    `_arbeit/design/DESIGN.md` 2.1, 2.2, 2.6: links der Auftrag, der seinen Raum füllt; rechts eine schmale Spalte mit kleinem
    Ring, „Danach“ und Material; unten das Ziel. Kein Malpunkt als Trenner in allem, was die Klasse sieht. */
-import { FORM, LAUT, MAT_NAME, ABSCHLUSS_STANDARD, formName } from '../logic/konstanten.mjs?v=3.0.0';
-import { stichpunkt, gliedern } from '../logic/auftragstext.mjs?v=3.0.0';
-import { linkStuecke } from '../logic/vorausfuellen.mjs?v=3.0.0';
-import { h, icon } from './dom.mjs?v=3.0.0';
-import { S, plan, fachAnzeige } from './zustand.mjs?v=3.0.0';
+import { FORM, LAUT, MAT_NAME, ABSCHLUSS_STANDARD, formName } from '../logic/konstanten.mjs?v=3.0.1';
+import { stichpunkt, gliedern } from '../logic/auftragstext.mjs?v=3.0.1';
+import { linkStuecke } from '../logic/vorausfuellen.mjs?v=3.0.1';
+import { h, icon } from './dom.mjs?v=3.0.1';
+import { S, plan, fachAnzeige } from './zustand.mjs?v=3.0.1';
 
 const DATUM = new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
 

@@ -2,9 +2,9 @@
 // welche Chips eine Baustein-Reihe zeigt, was ein Stundentyp an Getipptem verdrängen würde, welche Muster zum Fach passen,
 // welche freien Plätze der Stundenplan heute kennt und wo der Kurzlink umbrechen darf.
 // Zero 10.11.: „wir brauchen also ein System, was vieles sinnvoll vorausfüllt.“
-import { ordne, SICHTBAR } from './textbausteine.mjs?v=3.0.0';
-import { stichpunkt } from './auftragstext.mjs?v=3.0.0';
-import { wochentag, eintragGilt } from './stundenplan.mjs?v=3.0.0';
+import { ordne, SICHTBAR } from './textbausteine.mjs?v=3.0.1';
+import { stichpunkt } from './auftragstext.mjs?v=3.0.1';
+import { wochentag, eintragGilt } from './stundenplan.mjs?v=3.0.1';
 
 /* Aufschrift eines Chips: Lücken als „…“, erste Zeile, höchstens n Zeichen */
 export const chipText = (text, n = 30) => stichpunkt(String(text || '').replace(/\{[A-Za-z0-9]+\}/g, '…'), n);
