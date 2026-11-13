@@ -1,6 +1,6 @@
 // Stundenverlauf · logic/plan.mjs — ein Plan, ein Muster, ein Kurs-Eintrag: anlegen und prüfen.
 // Jedes Feld, das von außen kommt (Speicher, Link, QR), läuft durch seine Prüfung. Ein Feld, das hier fehlt, geht verloren.
-import { FAECHER, FORM, MATERIAL, STUNDEN, FENSTER_FEST } from './konstanten.mjs?v=3.0.1';
+import { FAECHER, FORM, MATERIAL, STUNDEN, FENSTER_FEST } from './konstanten.mjs?v=3.1.0';
 
 export const neueId =() => Math.random().toString(36).slice(2, 10);
 export const zahl = (v, min, max, std) => { const n = Number(v); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : std; };
@@ -31,12 +31,18 @@ export function standardPlan(fach = 'Mathematik') {
     pid: neueId(),
     fach, kurs: '', thema: '', modul: '', ziel: '',
     material: ['ipad', 'buch', 'mappe', 'schreibzeug'], eigenes: [],
+    experiment: false, experimentHinweis: '',
     einstieg: 5,
     phasen: [neuePhase('einzel', 20), neuePhase('pause', 5), neuePhase('partner', 20)],
     abschluss: { min: 10, text: '', ha: '' },
     gelaufen: '',
   };
 }
+/* „Heute wird experimentiert“ (3.1, Wunsch eines Kollegen: die Klasse stellt vor der Stunde z. B. die Tische um): Schalter
+   bei „Material“; experimentHinweis ist ein freiwilliger Satz der Lehrkraft dazu. Ein Stand ohne Feld lädt als „aus“.
+   Höchstens 80 Zeichen: so passt der Satz mit fünf Material-Kacheln ins Startfenster, auch in der geteilten iPad-Ansicht
+   (gemessen 13.11. bei 540 × 810: 80 Zeichen passen, 118 Zeichen rollten 24 px). */
+export const EXPERIMENT_HINWEIS_MAX = 80;
 export const pruefeMaterial = (m, std) => Array.isArray(m) ? MATERIAL.map(x => x[0]).filter(x => m.includes(x)) : std;
 export const pruefeEigenes = e => Array.isArray(e) ? e.filter(x => typeof x === 'string' && x.trim()).map(x => x.slice(0, 40)).slice(0, 8) : [];
 export function pruefePlan(p) {
@@ -51,6 +57,7 @@ export function pruefePlan(p) {
     thema: text(p.thema, 120), modul: text(p.modul, 120), ziel: text(p.ziel, 160),
     material: pruefeMaterial(p.material, d.material),
     eigenes: pruefeEigenes(p.eigenes),
+    experiment: p.experiment === true, experimentHinweis: text(p.experimentHinweis, EXPERIMENT_HINWEIS_MAX),
     einstieg: Math.round(zahl(p.einstieg, 0, 60, d.einstieg)),
     phasen: Array.isArray(p.phasen)
       ? p.phasen.filter(x => x && hat(FORM, x.typ)).slice(0, 12).map(x => ({
@@ -69,7 +76,8 @@ export function pruefeMuster(m) {
     .map(x => ({ typ: x.typ, min: Math.round(zahl(x.min, 1, 120, 10)), groesse: Math.round(zahl(x.groesse, 3, 8, 4)) }));
   if (!phasen.length) return null;
   return { name: m.name.trim().slice(0, 40), einstieg: Math.round(zahl(m.einstieg, 0, 60, 5)), phasen,
-    abschlussMin: Math.round(zahl(m.abschlussMin, 0, 60, 10)), material: pruefeMaterial(m.material, []), eigenes: pruefeEigenes(m.eigenes) };
+    abschlussMin: Math.round(zahl(m.abschlussMin, 0, 60, 10)), material: pruefeMaterial(m.material, []), eigenes: pruefeEigenes(m.eigenes),
+    experiment: m.experiment === true };
 }
 export function pruefeKurs(k) {
   if (!k || typeof k !== 'object' || typeof k.name !== 'string' || !k.name.trim() || !/^\d{4}-\d\d-\d\d$/.test(k.datum) || !k.plan) return null;
@@ -79,6 +87,6 @@ export function pruefeKurs(k) {
 }
 
 /* Inhalt, den die Lehrkraft getippt hat — vor dem Überschreiben fragt die Einrichtung nach */
-export const hatGetipptes = P => [P.thema, P.modul, P.ziel, P.abschluss.text, P.abschluss.ha, ...P.phasen.flatMap(p => [p.auftrag, p.fertig])].some(t => t.trim());
+export const hatGetipptes = P => [P.thema, P.modul, P.ziel, P.experimentHinweis, P.abschluss.text, P.abschluss.ha, ...P.phasen.flatMap(p => [p.auftrag, p.fertig])].some(t => t.trim());
 /* Planzeit in Minuten: Eröffnung + Phasen + Abschluss */
 export const planSumme = P => P.einstieg + P.phasen.reduce((a, p) => a + p.min, 0) + P.abschluss.min;

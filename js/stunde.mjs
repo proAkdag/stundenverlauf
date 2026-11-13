@@ -5,16 +5,16 @@
               · bausteine_daten · stundentypen · textbausteine · stundenplan · stand_v3 · klassenbuch · sicherung · vorausfuellen · tage
      js/      Ansichten: zustand (Stand S, Schreiben) · dom · eingabe · einrichtung · bausteine · stundenplan_ansicht
               · sicherung_ansicht · tage_ansicht · buehne · phasenfenster · austausch · scanner · kern/update */
-export const APP_VERSION = '3.0.1';
+export const APP_VERSION = '3.1.0';
 
-import { $ } from './dom.mjs?v=3.0.1';
-import { pidNeu, schreibe } from './zustand.mjs?v=3.0.1';
-import { initEinrichten, malEinrichten } from './einrichtung.mjs?v=3.0.1';
-import { initSicherung } from './sicherung_ansicht.mjs?v=3.0.1';
-import { initBuehne } from './buehne.mjs?v=3.0.1';
-import { importPruefen } from './austausch.mjs?v=3.0.1';
-import { initScanner } from './scanner.mjs?v=3.0.1';
-import { updateStarten, updateEintrag } from './kern/update.mjs?v=3.0.1';
+import { $ } from './dom.mjs?v=3.1.0';
+import { pidNeu, schreibe } from './zustand.mjs?v=3.1.0';
+import { initEinrichten, malEinrichten } from './einrichtung.mjs?v=3.1.0';
+import { initSicherung } from './sicherung_ansicht.mjs?v=3.1.0';
+import { initBuehne } from './buehne.mjs?v=3.1.0';
+import { importPruefen } from './austausch.mjs?v=3.1.0';
+import { initScanner } from './scanner.mjs?v=3.1.0';
+import { updateStarten, updateEintrag } from './kern/update.mjs?v=3.1.0';
 
 initEinrichten();
 initScanner();

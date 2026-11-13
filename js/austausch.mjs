@@ -1,16 +1,16 @@
 // Stundenverlauf · js/austausch.mjs — Plan weitergeben (Link, QR) und Plan übernehmen (Link, Scanner).
 /* Weitergeben (2.2): der Plan einer Stunde als Link und als QR-Code (qrcode-generator, MIT, aus der Werft-Arena). Das Handy
    scannt ihn mit der Kamera, öffnet die App und übernimmt den Plan in eine Stunde seiner Wahl. Nur Plandaten, keine Namen. */
-import { STUNDEN } from '../logic/konstanten.mjs?v=3.0.1';
-import { neueId } from '../logic/plan.mjs?v=3.0.1';
-import { planHash, planAusLink } from '../logic/planlink.mjs?v=3.0.1';
-import { laufFrisch } from '../logic/uhren.mjs?v=3.0.1';
-import { planAktualisieren, importVorschlag } from '../logic/abgleich.mjs?v=3.0.1';
-import { pidAnderswo } from '../logic/tage.mjs?v=3.0.1';
-import { $, h } from './dom.mjs?v=3.0.1';
-import { S, lage, plan, fachAnzeige, schreibe, speichere } from './zustand.mjs?v=3.0.1';
-import { malEinrichten } from './einrichtung.mjs?v=3.0.1';
-import { zurEinrichtung, buehneNeu } from './buehne.mjs?v=3.0.1';
+import { STUNDEN } from '../logic/konstanten.mjs?v=3.1.0';
+import { neueId } from '../logic/plan.mjs?v=3.1.0';
+import { planHash, planAusLink } from '../logic/planlink.mjs?v=3.1.0';
+import { laufFrisch } from '../logic/uhren.mjs?v=3.1.0';
+import { planAktualisieren, importVorschlag } from '../logic/abgleich.mjs?v=3.1.0';
+import { pidAnderswo } from '../logic/tage.mjs?v=3.1.0';
+import { $, h } from './dom.mjs?v=3.1.0';
+import { S, lage, plan, fachAnzeige, schreibe, speichere } from './zustand.mjs?v=3.1.0';
+import { malEinrichten } from './einrichtung.mjs?v=3.1.0';
+import { zurEinrichtung, buehneNeu } from './buehne.mjs?v=3.1.0';
 
 export async function weitergeben() {
   // ein Entwurf bekäme nach dem Neuladen eine neue pid — wer ihn weitergibt, belegt die Stunde

@@ -15,6 +15,8 @@
      selbstlauf  Phasen wechseln nach Ablauf der Zeit von selbst (Schalter, aus)
      kamera      'environment' | 'user' — zuletzt gewählte Kamera des Scanners (2.3)
      phasen[].link (3.0) Material-Link je Phase, nur https://, sonst '' (pruefePlan)
+     experiment, experimentHinweis (3.1, im Plan) „Heute wird experimentiert“ und ein freiwilliger Satz dazu; fehlt → aus, ''
+     muster[].experiment (3.1) ein Muster mit Schalter schaltet ihn beim Laden an
    Ergänzt von logic/stand_v3.mjs erweitereStand (3.0, gleicher Schlüssel, gelesen direkt nach leseStand in js/zustand.mjs):
      plan        Stundenplan je Wochentag: {'1'…'5': [6 × {fach, kurs, typ} | null]} (logic/stundenplan.mjs) — nicht
                  verwechseln mit plan() in js/zustand.mjs, dem Plan der gewählten Stunde
@@ -24,8 +26,8 @@
                  der Bühne). Ein Feld mit Inhalt steht auch bei „aus“ da, sonst wäre der Inhalt nicht mehr zu ändern.
      v           3 — Stand-Fassung; die 2.3.4 kennt plan, bausteine, fach und v nicht und lässt sie beim Schreiben fallen
    Jedes Feld läuft beim Laden durch seine Prüfung — ein Feld, das dort fehlt, geht beim Neuladen verloren. */
-import { STUNDEN, LAUF_GUELTIG_MS, MUSTER_MAX } from './konstanten.mjs?v=3.0.1';
-import { zahl, gueltigeId, kursName, kursSchluessel, pruefePlan, pruefeMuster, pruefeKurs } from './plan.mjs?v=3.0.1';
+import { STUNDEN, LAUF_GUELTIG_MS, MUSTER_MAX } from './konstanten.mjs?v=3.1.0';
+import { zahl, gueltigeId, kursName, kursSchluessel, pruefePlan, pruefeMuster, pruefeKurs } from './plan.mjs?v=3.1.0';
 
 export function grundStand() {
   return {

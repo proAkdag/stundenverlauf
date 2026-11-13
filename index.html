@@ -26,11 +26,11 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <!-- iOS macht aus Ziffernfolgen („S. 42, Nr. 3“) sonst Telefon-Links -->
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-<link rel="stylesheet" href="./css/stunde.css?v=3.0.1">
+<link rel="stylesheet" href="./css/stunde.css?v=3.1.0">
 <!-- QR-Code für „Weitergeben“: qrcode-generator (Kazuhiko Arase, MIT), übernommen aus der Werft-Arena (vendor/qrcode.js).
      Der Scanner lädt jsQR (Apache-2.0, ebenfalls aus der Arena, vendor/jsqr.js) erst beim ersten Scan. -->
-<script src="./js/vendor/qrcode.js?v=3.0.1" defer></script>
-<script type="module" src="./js/stunde.mjs?v=3.0.1"></script>
+<script src="./js/vendor/qrcode.js?v=3.1.0" defer></script>
+<script type="module" src="./js/stunde.mjs?v=3.1.0"></script>
 </head>
 <body>
 
@@ -85,6 +85,11 @@
 
       <section class="karte" aria-labelledby="h-material">
         <h2 id="h-material">Material</h2>
+        <!-- 3.1: „Heute wird experimentiert“, die Klasse sieht es im Startfenster und in „Heute“ -->
+        <div class="exp-zeile">
+          <button type="button" class="mat-knopf exp-knopf" id="e-exp" aria-pressed="false"></button>
+          <input type="text" id="e-exp-satz" autocomplete="off" maxlength="80" placeholder="Satz dazu (optional) – z. B. Stellt die Tische zu Vierergruppen." aria-label="Satz zum Experiment" hidden>
+        </div>
         <div class="mat-raster" id="e-material"></div>
         <div class="eigen-zeile">
           <input type="text" id="e-eigen" autocomplete="off" maxlength="40" placeholder="Weiteres Material" aria-label="Weiteres Material">

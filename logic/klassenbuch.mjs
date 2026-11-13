@@ -2,7 +2,7 @@
 // übernommen aus _arbeit/konzept/klassenbuch.mjs). Die App weiß: Datum (gelaufen), Platz, Fach, Kurs, Thema, Ziel, die Phasen
 // mit Form, „blieb offen“ und die Hausaufgabe. Wie die Stunde verlief, schreibt die Lehrkraft selbst dazu.
 // Trenner sind Komma, Semikolon und Zeile, nie der Malpunkt. Zeilen ohne Inhalt fallen weg. An die Kladde geht nichts (Zero 10.11.).
-import { FORM } from './konstanten.mjs?v=3.0.1';
+import { FORM } from './konstanten.mjs?v=3.1.0';
 
 const TAG = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 const LISTE = /^(\s*)(•|[-–*]|\d+[.)])\s+/;

@@ -92,7 +92,7 @@ export const DATEN = {
       ],
       "stundentypen": [
         { "id": "ph-einfuehrung", "name": "Einführung", "einstieg": 5, "phasen": [{ "typ": "plenum", "min": 15 }, { "typ": "partner", "min": 20 }, { "typ": "plenum", "min": 15 }], "abschlussMin": 10, "material": ["heft", "schreibzeug"], "eigenes": [] },
-        { "id": "ph-experiment", "name": "Experiment", "einstieg": 5, "phasen": [{ "typ": "plenum", "min": 10 }, { "typ": "gruppe", "min": 25, "groesse": 4 }, { "typ": "partner", "min": 15 }], "abschlussMin": 10, "material": ["ipad", "heft", "schreibzeug"], "eigenes": [] },
+        { "id": "ph-experiment", "name": "Experiment", "einstieg": 5, "phasen": [{ "typ": "plenum", "min": 10 }, { "typ": "gruppe", "min": 25, "groesse": 4 }, { "typ": "partner", "min": 15 }], "abschlussMin": 10, "material": ["ipad", "heft", "schreibzeug"], "eigenes": [], "experiment": true },
         { "id": "ph-uebung", "name": "Übung", "einstieg": 5, "phasen": [{ "typ": "einzel", "min": 25 }, { "typ": "pause", "min": 5 }, { "typ": "partner", "min": 20 }], "abschlussMin": 10, "material": ["heft", "schreibzeug", "taschenrechner"], "eigenes": [] },
         { "id": "ph-rueckgabe", "name": "Rückgabe einer Arbeit", "einstieg": 5, "phasen": [{ "typ": "plenum", "min": 15 }, { "typ": "einzel", "min": 25 }, { "typ": "partner", "min": 10 }], "abschlussMin": 10, "material": ["heft", "schreibzeug"], "eigenes": [] },
         { "id": "ph-auswertung", "name": "Auswertung", "einstieg": 5, "phasen": [{ "typ": "partner", "min": 20 }, { "typ": "gruppe", "min": 20, "groesse": 4 }, { "typ": "plenum", "min": 10 }], "abschlussMin": 10, "material": ["heft", "schreibzeug"], "eigenes": [] }

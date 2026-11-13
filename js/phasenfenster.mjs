@@ -2,11 +2,11 @@
 /* 3.0 (Zero 10.11.: „Die Uhr ist zu groß. Der Auftrag zu klein. Das Stundenziel nirgends sichtbar.“), Maße im Entwurf
    `_arbeit/design/DESIGN.md` 2.1, 2.2, 2.6: links der Auftrag, der seinen Raum füllt; rechts eine schmale Spalte mit kleinem
    Ring, „Danach“ und Material; unten das Ziel. Kein Malpunkt als Trenner in allem, was die Klasse sieht. */
-import { FORM, LAUT, MAT_NAME, ABSCHLUSS_STANDARD, formName } from '../logic/konstanten.mjs?v=3.0.1';
-import { stichpunkt, gliedern } from '../logic/auftragstext.mjs?v=3.0.1';
-import { linkStuecke } from '../logic/vorausfuellen.mjs?v=3.0.1';
-import { h, icon } from './dom.mjs?v=3.0.1';
-import { S, plan, fachAnzeige } from './zustand.mjs?v=3.0.1';
+import { FORM, LAUT, MAT_NAME, ABSCHLUSS_STANDARD, formName } from '../logic/konstanten.mjs?v=3.1.0';
+import { stichpunkt, gliedern } from '../logic/auftragstext.mjs?v=3.1.0';
+import { linkStuecke } from '../logic/vorausfuellen.mjs?v=3.1.0';
+import { h, icon } from './dom.mjs?v=3.1.0';
+import { S, plan, fachAnzeige } from './zustand.mjs?v=3.1.0';
 
 const DATUM = new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -42,6 +42,18 @@ export function passeAuftragAn(fenster) {
   }
 }
 
+/* „Heute wird experimentiert“ (3.1, Wunsch eines Kollegen: die Klasse sieht es vor der Stunde und stellt z. B. die Tische
+   um). Startfenster: eigener Block über dem Material, mit dem Satz der Lehrkraft. „Heute“: eine Zeile wie das Ziel, ohne
+   den Satz — die linke Spalte ist schmal, ein langer Satz kostete dort vier Zeilen (gemessen 1080 × 810: 156 px). Aus → kein Element. */
+const EXP_WORT = 'Heute wird experimentiert';
+function experimentBlock(P) {
+  if (!P.experiment) return null;
+  const satz = P.experimentHinweis.trim();
+  return h('div', { class: 'f-experiment' }, icon('kolben'),
+    h('div', {}, h('p', { class: 'fe-wort' }, EXP_WORT), satz ? h('p', { class: 'fe-satz' }, satz) : null));
+}
+const experimentZeile = P => P.experiment ? h('p', { class: 'f-exp-zeile' }, icon('kolben'), h('b', {}, EXP_WORT)) : null;
+
 /* Ziel als ruhige Zeile unten in jedem Phasenfenster. Ohne Ziel kein Element, also keine leere Stelle. */
 function zielZeile(P) {
   const ziel = P.ziel.trim();
@@ -70,6 +82,7 @@ export function fensterInhalt(f, ctx) {
       h('p', { class: 'f-kicker' }, DATUM.format(new Date())),
       h('h1', { class: 'f-titel' }, 'Willkommen in ', h('span', { class: 'fachwort' }, fachAnzeige())),
       S.lehrkraft.trim() ? h('p', { class: 'f-unter' }, 'bei ' + S.lehrkraft.trim()) : null,
+      experimentBlock(P),
       mat.length ? [
         h('h2', { class: 'f-abschnitt' }, 'Du benötigst heute:'),
         h('ul', { class: 'mat-reihe' }, mat.map(([ic, name]) => h('li', { class: 'mat-kachel' }, icon(ic), name))),
@@ -92,7 +105,8 @@ export function fensterInhalt(f, ctx) {
         h('p', { class: 'f-kicker' }, thema ? 'Heute ist Thema' : 'Heute'),
         h('h1', { class: 'f-titel' }, thema || modul || 'So läuft die Stunde'),
         thema && modul ? h('p', { class: 'f-modul' }, icon('modul'), modul) : null,
-        ziel ? h('p', { class: 'f-ziel' }, icon('ziel'), h('span', {}, h('b', {}, 'Ziel'), ziel)) : null),
+        ziel ? h('p', { class: 'f-ziel' }, icon('ziel'), h('span', {}, h('b', {}, 'Ziel'), ziel)) : null,
+        experimentZeile(P)),
       h('div', {},
         h('p', { class: 'f-kicker' }, 'So arbeitest du heute'),
         h('ol', { class: 'ablauf' + (zeilen.length > 6 ? ' dicht' : '') }, zeilen)));

@@ -1,6 +1,6 @@
 // Stundenverlauf · js/eingabe.mjs — Eingabe-Bausteine der Einrichtung: Segment, Zahl mit − und +, Auftragsfeld mit Listen.
-import { h } from './dom.mjs?v=3.0.1';
-import { listeUmschalten, listeWeiterText } from '../logic/auftragstext.mjs?v=3.0.1';
+import { h } from './dom.mjs?v=3.1.0';
+import { listeUmschalten, listeWeiterText } from '../logic/auftragstext.mjs?v=3.1.0';
 
 export function segment(name, optionen, wert, beiWahl, label) {
   return h('div', { class: 'segment', role: 'radiogroup', 'aria-label': label },

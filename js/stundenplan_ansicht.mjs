@@ -1,14 +1,14 @@
 // Stundenverlauf · js/stundenplan_ansicht.mjs — Stundenplan je Wochentag pflegen und „Tag anlegen“ in der Tagesleiste.
 // Zero 10.11.: „die Stundenplan-Idee ist nicht schlecht“. Angelegt wird nur auf Tipp, belegte Stunden bleiben, wie sie sind
 // (logic/stundenplan.mjs tagAnlegen). Ohne A/B-Wochen und nie von selbst (Zero 10.11.).
-import { FACH_LISTE, STUNDEN } from '../logic/konstanten.mjs?v=3.0.1';
-import { TAGE, wochentag, setzeEintrag, loescheEintrag, tagAnlegen } from '../logic/stundenplan.mjs?v=3.0.1';
-import { stundentypenFuer, typIds } from '../logic/stundentypen.mjs?v=3.0.1';
-import { DATEN } from '../logic/bausteine_daten.mjs?v=3.0.1';
-import { $, h, icon, melde } from './dom.mjs?v=3.0.1';
-import { S, lage, schreibe } from './zustand.mjs?v=3.0.1';
-import { segment } from './eingabe.mjs?v=3.0.1';
-import { datumVon } from '../logic/tage.mjs?v=3.0.1';
+import { FACH_LISTE, STUNDEN } from '../logic/konstanten.mjs?v=3.1.0';
+import { TAGE, wochentag, setzeEintrag, loescheEintrag, tagAnlegen } from '../logic/stundenplan.mjs?v=3.1.0';
+import { stundentypenFuer, typIds } from '../logic/stundentypen.mjs?v=3.1.0';
+import { DATEN } from '../logic/bausteine_daten.mjs?v=3.1.0';
+import { $, h, icon, melde } from './dom.mjs?v=3.1.0';
+import { S, lage, schreibe } from './zustand.mjs?v=3.1.0';
+import { segment } from './eingabe.mjs?v=3.1.0';
+import { datumVon } from '../logic/tage.mjs?v=3.1.0';
 
 const TAG_NAME = { 1: 'Mo', 2: 'Di', 3: 'Mi', 4: 'Do', 5: 'Fr' };
 let neuMalen = () => {}, tag = '1';

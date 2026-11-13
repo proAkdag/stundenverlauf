@@ -2,8 +2,8 @@
 // Nutzung zählen. Zero 10.11.: „Das Eintippen aller Aufträge wird viel, wenn man es ordentlich machen will, und genau dagegen
 // war die App ja eigentlich, wir brauchen also ein System, was vieles sinnvoll vorausfüllt.“
 // Mitgelieferte Bausteine kommen aus bausteine_daten.mjs, im Speicher stehen nur eigene und Zähler (Konzept §9).
-import { FAECHER } from './konstanten.mjs?v=3.0.1';
-import { hat, zahl } from './plan.mjs?v=3.0.1';
+import { FAECHER } from './konstanten.mjs?v=3.1.0';
+import { hat, zahl } from './plan.mjs?v=3.1.0';
 
 /* Feldgrenzen wie in pruefePlan der App (Auftrag 600, Fertig 200, Ziel 160, Abschluss 160, Hausaufgabe 400) */
 export const GRENZEN = Object.freeze({ auftrag: 600, fertig: 200, ziel: 160, abschluss: 160, ha: 400, luecke: 40, kuerzel: 12 });

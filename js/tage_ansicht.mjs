@@ -2,15 +2,15 @@
 // ungestartete Stunden und „nach der Stunde“ (Klassenbuch, am vergangenen Tag auch „blieb offen“). Rechnen: logic/tage.mjs.
 // Zero 10.11.: „Und gibt es eine Möglichkeit, zwischen den Tagen zu wechseln? … Aktuelles Datum sollte auch am besten lesbar
 // angezeigt werden.“ Wortlaut „Fällt aus“ und „Ausfall zurücknehmen“ wie in der Kladde, damit sich beide Apps gleich anfühlen.
-import { heute, hatGetipptes } from '../logic/plan.mjs?v=3.0.1';
-import { laufFrisch } from '../logic/uhren.mjs?v=3.0.1';
-import { formName } from '../logic/konstanten.mjs?v=3.0.1';
-import { stichpunkt } from '../logic/auftragstext.mjs?v=3.0.1';
-import { klassenbuchText } from '../logic/klassenbuch.mjs?v=3.0.1';
+import { heute, hatGetipptes } from '../logic/plan.mjs?v=3.1.0';
+import { laufFrisch } from '../logic/uhren.mjs?v=3.1.0';
+import { formName } from '../logic/konstanten.mjs?v=3.1.0';
+import { stichpunkt } from '../logic/auftragstext.mjs?v=3.1.0';
+import { klassenbuchText } from '../logic/klassenbuch.mjs?v=3.1.0';
 import { datumVon, schultagAb, wechsleTag, heimat, vergangen, istHeute, ungestartete, aufHeuteHolen, setzeAusfall,
-  ausfallAngebot, ausfallUebernehmen } from '../logic/tage.mjs?v=3.0.1';
-import { $, h, icon, melde } from './dom.mjs?v=3.0.1';
-import { S, lage, plan, schreibe, speichere } from './zustand.mjs?v=3.0.1';
+  ausfallAngebot, ausfallUebernehmen } from '../logic/tage.mjs?v=3.1.0';
+import { $, h, icon, melde } from './dom.mjs?v=3.1.0';
+import { S, lage, plan, schreibe, speichere } from './zustand.mjs?v=3.1.0';
 
 let malen = () => {};
 const DATUM_LANG = new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });

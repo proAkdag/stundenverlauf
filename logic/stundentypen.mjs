@@ -1,8 +1,8 @@
 // Stundenverlauf · logic/stundentypen.mjs — mitgelieferte Stundentypen je Fach (Daten: bausteine_daten.mjs) zu einem Plan machen.
 // Ein Tipp setzt Ablauf, Minuten und Material (Konzept VORAUSFUELLEN.md §4: −32 % Tipps). Passt die Summe nicht zur
 // Stundenlänge, wird nichts gestreckt: die Lücke kommt mit zurück und die Einrichtung zeigt sie („Luft“ / „zu viel“).
-import { FAECHER } from './konstanten.mjs?v=3.0.1';
-import { neuePhase, pruefeMaterial, pruefeEigenes, planSumme, hat } from './plan.mjs?v=3.0.1';
+import { FAECHER } from './konstanten.mjs?v=3.1.0';
+import { neuePhase, pruefeMaterial, pruefeEigenes, planSumme, hat } from './plan.mjs?v=3.1.0';
 
 export const gleicherName = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
@@ -47,6 +47,9 @@ export function planAusTyp(typ, basis, stundeMin) {
     abschluss: { ...basis.abschluss, min: typ.abschlussMin ?? basis.abschluss.min },
     material: pruefeMaterial(typ.material, basis.material),
     eigenes: pruefeEigenes(typ.eigenes ?? basis.eigenes),
+    // „Heute wird experimentiert“: ein Typ oder Muster mit Schalter schaltet ihn an, keiner schaltet ihn aus
+    // (Zero 13.11.: „Stundentyp schaltet an“); aus schaltet nur die Lehrkraft selbst
+    experiment: basis.experiment === true || typ.experiment === true,
   };
   const summe = planSumme(plan);
   return { plan, summe, luecke: stundeMin - summe };

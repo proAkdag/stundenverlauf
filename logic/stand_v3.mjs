@@ -2,11 +2,11 @@
 // Additiv wie seit 2.1.0: Der Schlüssel stundenverlauf.v2 bleibt, ein Stand der 2.3.4 lädt ohne Verlust. Jedes neue Feld
 // wird geprüft; hat es den falschen Typ, wird es verworfen (Standardwert), der Rest bleibt (Konzept §9).
 // Noch nicht hier, weil es auf Zero wartet: vorrat, fuer, std, abAnker, rhythmus, Prüfsumme im Plan-Link.
-import { FAECHER, MUSTER_MAX } from './konstanten.mjs?v=3.0.1';
-import { hat, pruefeMuster } from './plan.mjs?v=3.0.1';
-import { pruefeStundenplan } from './stundenplan.mjs?v=3.0.1';
-import { pruefeEigene, pruefeZaehler } from './textbausteine.mjs?v=3.0.1';
-import { leseTage } from './tage.mjs?v=3.0.1';
+import { FAECHER, MUSTER_MAX } from './konstanten.mjs?v=3.1.0';
+import { hat, pruefeMuster } from './plan.mjs?v=3.1.0';
+import { pruefeStundenplan } from './stundenplan.mjs?v=3.1.0';
+import { pruefeEigene, pruefeZaehler } from './textbausteine.mjs?v=3.1.0';
+import { leseTage } from './tage.mjs?v=3.1.0';
 
 export const STAND_V = 3;
 

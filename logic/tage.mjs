@@ -12,9 +12,9 @@
    Das Feld lebt nur an den Plätzen der Tage; pruefePlan kennt es nicht, darum fällt es bei Kopie, Link und Kurs-Gedächtnis weg.
    Muster abgeschaut von der Kladde (kladde/app/logic/stunden.mjs, autowahl.mjs entfallZurueck, js/ansichten/stundenplan.mjs
    schultagAb), nichts importiert: Schultag für Schultag blättern, „Fällt aus“ und „Ausfall zurücknehmen“. Ohne DOM. */
-import { STUNDEN } from './konstanten.mjs?v=3.0.1';
-import { heute, hatGetipptes, kursSchluessel, neueId, pruefePlan } from './plan.mjs?v=3.0.1';
-import { laufFrisch } from './uhren.mjs?v=3.0.1';
+import { STUNDEN } from './konstanten.mjs?v=3.1.0';
+import { heute, hatGetipptes, kursSchluessel, neueId, pruefePlan } from './plan.mjs?v=3.1.0';
+import { laufFrisch } from './uhren.mjs?v=3.1.0';
 
 export const AUSFALL = ['offen', 'nachgeholt'];
 const zwei = n => String(n).padStart(2, '0');

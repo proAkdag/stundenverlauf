@@ -1,9 +1,9 @@
 // Stundenverlauf · logic/stundenplan.mjs — Stundenplan je Wochentag (Zero 10.11.: „die Stundenplan-Idee ist nicht schlecht“).
 // Ein Eintrag je Wochentag (1 Montag bis 5 Freitag) und Platz (1. bis 6. Stunde): { fach, kurs, typ }.
 // Ohne A/B-Wochen (Zero 10.11.: „Keine A/B-Woche“): Jeder Eintrag gilt jede Woche.
-import { FAECHER, STUNDEN } from './konstanten.mjs?v=3.0.1';
-import { hat, text, standardPlan } from './plan.mjs?v=3.0.1';
-import { typVon, planAusTyp } from './stundentypen.mjs?v=3.0.1';
+import { FAECHER, STUNDEN } from './konstanten.mjs?v=3.1.0';
+import { hat, text, standardPlan } from './plan.mjs?v=3.1.0';
+import { typVon, planAusTyp } from './stundentypen.mjs?v=3.1.0';
 
 export const TAGE = ['1', '2', '3', '4', '5'];
 

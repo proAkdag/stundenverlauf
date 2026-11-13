@@ -105,6 +105,9 @@
   .mat-knopf svg { width: 28px; height: 28px; color: var(--leise); }
   .mat-knopf[aria-pressed="true"] { border-color: var(--fach); background: var(--fach-zart); font-weight: 650; }
   .mat-knopf[aria-pressed="true"] svg { color: var(--fach); }
+  /* „Heute wird experimentiert“ (3.1): ein breiter Material-Schalter, darunter der freiwillige Satz */
+  .exp-zeile { display: grid; gap: 8px; margin-bottom: 10px; }
+  .exp-knopf { width: 100%; min-height: 56px; grid-auto-flow: column; justify-content: start; gap: 10px; padding: 8px 14px; text-align: left; font-size: 15px; }
   .eigen-zeile { display: flex; gap: 8px; margin-top: 12px; }
   .eigen-liste { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .eigen-liste:empty { display: none; }
@@ -563,6 +566,19 @@
   .f-ziel { display: flex; align-items: flex-start; gap: 1.8vmin; margin: 3.4vmin 0 0; font-size: 3.4vmin; line-height: 1.25; font-weight: 600; }
   .f-ziel svg { width: 4.6vmin; height: 4.6vmin; color: var(--fach); }
   .f-ziel b { display: block; font-size: 2.2vmin; letter-spacing: .09em; text-transform: uppercase; color: var(--fach); }
+  /* „Heute wird experimentiert“ (3.1): im Startfenster ein ruhiger Block mit Fachkante wie der Auftrag, der Satz der
+     Lehrkraft darunter; in „Heute“ nur eine Zeile wie das Ziel */
+  .f-experiment { display: flex; align-items: center; gap: 2.4vmin; margin: 3.6vmin 0 0; padding: 1.8vmin 3vmin; max-width: 62rem;
+    background: var(--flaeche); border: 1.5px solid var(--kante); border-left: 1.2vmin solid var(--fach); border-radius: 2vmin; }
+  .f-experiment svg { flex: none; width: 7.4vmin; height: 7.4vmin; color: var(--fach); }
+  .fe-wort { margin: 0; font-size: 4.6vmin; line-height: 1.1; font-weight: 750; }
+  .fe-satz { margin: .8vmin 0 0; font-size: 3.4vmin; line-height: 1.25; font-weight: 500; }
+  /* nach dem Block rückt „Du benötigst heute:“ näher: ein Satz über zwei Zeilen passt so noch ins Startfenster
+     (gemessen 1080 × 810 mit fünf Material-Kacheln) */
+  .f-experiment + .f-abschnitt { margin-top: 4vmin; }
+  .f-exp-zeile { display: flex; align-items: center; gap: 1.8vmin; margin: 3vmin 0 0; font-size: 3.4vmin; line-height: 1.25; }
+  .f-exp-zeile svg { flex: none; width: 4.6vmin; height: 4.6vmin; color: var(--fach); }
+  .f-exp-zeile b { font-weight: 700; }
   .auftrag { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; margin: 0; padding: 2.2vmin 3vmin 2.6vmin;
     background: var(--flaeche); border: 1.5px solid var(--kante); border-left: 1.2vmin solid var(--fach);
     border-radius: 1.6vmin; font-size: 4vmin; line-height: 1.26; font-weight: 600; overflow-wrap: break-word; hyphens: manual; }
@@ -652,7 +668,8 @@
     .ablauf li { padding-block: .9vmin; }
     .ablauf.dicht { gap: .5vmin; }
     .ablauf.dicht li { padding-block: .35vmin; }
-    .f-modul, .f-ziel { margin-top: 2vmin; }
+    .f-modul, .f-ziel, .f-exp-zeile { margin-top: 2vmin; }
+    .f-experiment { margin-top: 2.6vmin; padding-block: 1.2vmin; }
     .uhr-block { gap: 1.2vmin; }
   }
 
@@ -679,6 +696,13 @@
     .f-ziel b { font-size: 3.2cqi; }
     .f-ziel, .f-modul { font-size: 4.8cqi; }
     .f-modul svg { width: 5.6cqi; height: 5.6cqi; }
+    .f-experiment { margin-top: 4cqi; padding: 2cqi 3cqi; gap: 2.6cqi; border-left-width: 1.6cqi; }
+    .f-experiment + .f-abschnitt { margin-top: 3.4cqi; }
+    .f-experiment svg { width: 9cqi; height: 9cqi; }
+    .fe-wort { font-size: 5.6cqi; }
+    .fe-satz { font-size: 4cqi; }
+    .f-exp-zeile { font-size: 4.8cqi; }
+    .f-exp-zeile svg { width: 5.6cqi; height: 5.6cqi; }
     .ablauf li { grid-template-columns: 7cqi minmax(0, 1fr) auto; font-size: 4.6cqi; }
     .ablauf .wann { font-size: 3cqi; }
     .ablauf .stich { font-size: 3.6cqi; }

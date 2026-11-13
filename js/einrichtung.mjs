@@ -1,23 +1,23 @@
 // Stundenverlauf · js/einrichtung.mjs — die Einrichtung: Stunden des Tages, Kurs, Heute, Material, Ablauf, Start.
-import { FACH_LISTE, FAECHER, MATERIAL, FORM, ARBEIT, MUSTER_MAX, formName, halb } from '../logic/konstanten.mjs?v=3.0.1';
-import { heute, neuePhase, standardPlan, pruefePlan, pruefeMuster, neueId, hatGetipptes, planSumme, phaseEinsetzen, pruefeLink, PHASEN_MAX } from '../logic/plan.mjs?v=3.0.1';
-import { offeneVon, letzteStunde as letzteStundeVon, planWieLetzte, offenAlsNeu, bausteinVorschlaege } from '../logic/kurse.mjs?v=3.0.1';
-import { bauFenster, fensterName, laufFrisch, selbstlaufAb } from '../logic/uhren.mjs?v=3.0.1';
-import { stichpunkt } from '../logic/auftragstext.mjs?v=3.0.1';
-import { stundentypenFuer, planAusTyp, gleicherName } from '../logic/stundentypen.mjs?v=3.0.1';
-import { verloreneTexte, musterStellen, freiAusPlan } from '../logic/vorausfuellen.mjs?v=3.0.1';
-import { datumVon, vergangen } from '../logic/tage.mjs?v=3.0.1';
-import { DATEN } from '../logic/bausteine_daten.mjs?v=3.0.1';
-import { $, h, icon, melde } from './dom.mjs?v=3.0.1';
-import { S, lage, haken, plan, fachAnzeige, schreibe, speichere, setzeFarbe } from './zustand.mjs?v=3.0.1';
-import { segment, stepper, auftragFeld } from './eingabe.mjs?v=3.0.1';
-import { bausteinReihe, reiheHaken } from './bausteine.mjs?v=3.0.1';
-import { malTagWerkzeug, initStundenplan } from './stundenplan_ansicht.mjs?v=3.0.1';
-import { starteBuehne, wachGeht } from './buehne.mjs?v=3.0.1';
-import { weitergeben, eingangLesen, initAustausch } from './austausch.mjs?v=3.0.1';
-import { scannen } from './scanner.mjs?v=3.0.1';
+import { FACH_LISTE, FAECHER, MATERIAL, FORM, ARBEIT, MUSTER_MAX, formName, halb } from '../logic/konstanten.mjs?v=3.1.0';
+import { heute, neuePhase, standardPlan, pruefePlan, pruefeMuster, neueId, hatGetipptes, planSumme, phaseEinsetzen, pruefeLink, PHASEN_MAX } from '../logic/plan.mjs?v=3.1.0';
+import { offeneVon, letzteStunde as letzteStundeVon, planWieLetzte, offenAlsNeu, bausteinVorschlaege } from '../logic/kurse.mjs?v=3.1.0';
+import { bauFenster, fensterName, laufFrisch, selbstlaufAb } from '../logic/uhren.mjs?v=3.1.0';
+import { stichpunkt } from '../logic/auftragstext.mjs?v=3.1.0';
+import { stundentypenFuer, planAusTyp, gleicherName } from '../logic/stundentypen.mjs?v=3.1.0';
+import { verloreneTexte, musterStellen, freiAusPlan } from '../logic/vorausfuellen.mjs?v=3.1.0';
+import { datumVon, vergangen } from '../logic/tage.mjs?v=3.1.0';
+import { DATEN } from '../logic/bausteine_daten.mjs?v=3.1.0';
+import { $, h, icon, melde } from './dom.mjs?v=3.1.0';
+import { S, lage, haken, plan, fachAnzeige, schreibe, speichere, setzeFarbe } from './zustand.mjs?v=3.1.0';
+import { segment, stepper, auftragFeld } from './eingabe.mjs?v=3.1.0';
+import { bausteinReihe, reiheHaken } from './bausteine.mjs?v=3.1.0';
+import { malTagWerkzeug, initStundenplan } from './stundenplan_ansicht.mjs?v=3.1.0';
+import { starteBuehne, wachGeht } from './buehne.mjs?v=3.1.0';
+import { weitergeben, eingangLesen, initAustausch } from './austausch.mjs?v=3.1.0';
+import { scannen } from './scanner.mjs?v=3.1.0';
 // Tageswahl im Kopf, vergangene Tage, Ausfall, „nach der Stunde“ (Klassenbuch): js/tage_ansicht.mjs
-import { malTage, initTage, startErlaubt, ausfallKnopf, malAngebot } from './tage_ansicht.mjs?v=3.0.1';
+import { malTage, initTage, startErlaubt, ausfallKnopf, malAngebot } from './tage_ansicht.mjs?v=3.1.0';
 
 const laufGueltig = () => laufFrisch(S) && S.lauf.stunde === S.aktiv;
 
@@ -117,7 +117,7 @@ function musterSpeichern() {
   const P = plan();
   const name = prompt('Name für das Muster (z. B. Übungsstunde). Heißt es wie ein Stundentyp, ersetzt es ihn.',
     geladen?.plan === P ? geladen.name : `${P.phasen.filter(p => p.typ !== 'pause').length} Phasen · ${halb(S.stunde)} min`);
-  const m = pruefeMuster({ name, einstieg: P.einstieg, phasen: P.phasen, abschlussMin: P.abschluss.min, material: P.material, eigenes: P.eigenes });
+  const m = pruefeMuster({ name, einstieg: P.einstieg, phasen: P.phasen, abschlussMin: P.abschluss.min, material: P.material, eigenes: P.eigenes, experiment: P.experiment });
   if (!m) return;
   m.fach = P.fach;   // pruefeMuster kennt das Fach nicht; logic/stand_v3.mjs liest es beim Laden zurück
   // gleicher Name im selben Fach (oder ohne Fach) wird ersetzt; dasselbe Muster darf es je Fach einmal geben
@@ -138,6 +138,7 @@ function musterLaden(i) {
   P.phasen = m.phasen.map(x => neuePhase(x.typ, x.min, x.groesse));
   P.abschluss.min = m.abschlussMin;
   P.material = [...m.material]; P.eigenes = [...m.eigenes]; geladen = { plan: P, name: m.name };
+  if (m.experiment) P.experiment = true;   // wie beim Stundentyp: ein Muster schaltet an, nie aus (Zero 13.11.)
   speichere(); malEinrichten();
 }
 function musterLoeschen(i) {
@@ -150,8 +151,18 @@ function musterLoeschen(i) {
 }
 
 /* ─── Material ─── */
+/* „Heute wird experimentiert“ (3.1): Schalter oben in der Karte; ist er an, steht darunter ein freiwilliger Satz für die Klasse.
+   Der Satz bleibt im Plan, auch wenn der Schalter aus ist, und ist beim Wiedereinschalten wieder da. */
+function malExperiment() {
+  const P = plan(), satz = $('e-exp-satz');
+  $('e-exp').setAttribute('aria-pressed', String(P.experiment));
+  $('e-exp').replaceChildren(icon('kolben'), h('span', {}, 'Heute wird experimentiert'));
+  satz.hidden = !P.experiment;
+  if (document.activeElement !== satz) satz.value = P.experimentHinweis;
+}
 function malMaterial() {
   const P = plan();
+  malExperiment();
   $('e-material').replaceChildren(...MATERIAL.map(([id, name]) => h('button', {
     type: 'button', class: 'mat-knopf', 'aria-pressed': String(P.material.includes(id)),
     onclick: () => {
@@ -360,6 +371,8 @@ export function initEinrichten() {
   $('e-ziel').addEventListener('input', e => { plan().ziel = e.target.value.replace(/\n/g, ' '); speichere(); });
   $('e-ziel').addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });   // das Ziel ist ein Satz, keine Liste
   $('e-ab-text').addEventListener('input', e => { plan().abschluss.text = e.target.value; speichere(); });
+  $('e-exp').addEventListener('click', () => { const P = plan(); P.experiment = !P.experiment; malExperiment(); speichere(); });
+  $('e-exp-satz').addEventListener('input', e => { plan().experimentHinweis = e.target.value; speichere(); });
   $('e-eigen-plus').addEventListener('click', eigenesHinzu);
   $('e-weitergeben').addEventListener('click', weitergeben);
   $('e-holen').addEventListener('click', () => scannen(eingangLesen));

@@ -67,6 +67,8 @@ const PFADE = {
   ziel: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
   danach: '<path d="M4 12h14"/><path d="M13 6.5l5.5 5.5-5.5 5.5"/>',
   fertig: '<path d="M4.5 12.5l4.5 4.5 10.5-11"/>',
+  // Erlenmeyerkolben: „Heute wird experimentiert“ (3.1)
+  kolben: '<path d="M9 2.8h6"/><path d="M10.3 2.8v6.4L4.6 18.4a1.7 1.7 0 0 0 1.5 2.6h11.8a1.7 1.7 0 0 0 1.5-2.6L13.7 9.2V2.8"/><path d="M7.2 14.6h9.6"/>',
   stift: '<path d="M4.5 19.5l1-4L15.6 5.4a2 2 0 0 1 2.8 0l.2.2a2 2 0 0 1 0 2.8L8.5 18.5z"/><path d="M13.8 7.2l3 3"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
